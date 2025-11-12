@@ -19,38 +19,59 @@ h1 {
   text-shadow: 0 0 6px rgba(160, 80, 255, 0.3);
 }
 
-/* News Ticker */
+/* news ticker container */
 .news-ticker {
   width: 100%;
   overflow: hidden;
   white-space: nowrap;
-  background: hsl(280, 75%, 45%);
+  background: hsl(280, 75%, 50%);
   color: white;
   font-family: Fredoka, sans-serif;
-  font-weight: 600;
   font-size: 1rem;
-  padding: 0.6rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 0;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-.ticker-content {
+/* news ticker container */
+.news-ticker {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background: hsl(280, 75%, 50%);
+  color: white;
+  font-family: Fredoka, sans-serif;
+  font-size: 1rem;
+  padding: 0.5rem 0;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* the moving text — use CSS vars for start/end in px */
+#ticker {
   display: inline-block;
+  white-space: nowrap;
+  position: relative;
   will-change: transform;
-  animation: ticker-scroll linear infinite;
+  --start: 100px; /* will be overwritten by JS */
+  --end: -100px; /* will be overwritten by JS */
+  transform: translateX(var(--start));
+  animation: ticker-scroll 30s linear infinite; /* fallback duration */
 }
 
-/* The scroll speed is based on element width (set in JS) */
+/* keyframes use the CSS vars (pixel values) */
 @keyframes ticker-scroll {
   from {
-    transform: translateX(100%);
+    transform: translateX(var(--start));
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(var(--end));
   }
+}
+
+/* pause on hover */
+.news-ticker:hover #ticker {
+  animation-play-state: paused;
 }
 
 /* Ball Container */
