@@ -21,10 +21,13 @@
     </div>
     
     <script>
-      const spacerType = "space"; // "space" or "dashed"
-      const spacerLength = 50; // Adjust how long the spacer is
+      const savedSettings = JSON.parse(localStorage.getItem("gameSettings")) || {};
+    
+      const spacerType = savedSettings.spacerType || "space";
+      const spacerLength = parseInt(savedSettings.spacerLength || 50);
+      const speed = parseInt(savedSettings.tickerSpeed || 50); // pixels per second
+    
       const ticker = document.getElementById("ticker");
-      const speed = 50; // pixels per second (scroll speed)
     
       fetch("news.json")
         .then((res) => res.json())
@@ -35,26 +38,22 @@
               : "\u00A0".repeat(spacerLength); // Non-breaking spaces
     
           function showRandomMessages() {
-            // Shuffle the messages for randomness
             const shuffled = [...newsItems].sort(() => Math.random() - 0.5);
-            // Join with configurable spacer
             const text = shuffled.map((item) => item.message).join(spacer) + spacer;
     
             ticker.textContent = text;
     
-            // Calculate how long it takes one full loop to scroll across the screen
             const width = ticker.offsetWidth;
             const duration = width / speed;
     
-            // Restart animation cleanly
             ticker.style.animation = "none";
-            void ticker.offsetHeight; // force reflow
+            void ticker.offsetHeight;
             ticker.style.animation = `ticker-scroll ${duration}s linear infinite`;
           }
     
           showRandomMessages();
         });
-    </script>     
+    </script>         
     
     <div clss="Home-page">
       <div class="title-row">

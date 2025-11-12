@@ -2,11 +2,179 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Page 5</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
+    <title>Settings - Phonics Breaker</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
+
   <body>
-    <h1>Welcome to Page 2</h1>
-    <p>This should be completely separate from the first page.</p>
-    <a href="index.html">Back to Home</a>
+    <h1>Game Settings</h1>
+
+    <div class="settings-container">
+      <!-- Difficulty -->
+      <label for="difficulty">Difficulty</label>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="normal" selected>Normal</option>
+        <option value="hard">Hard</option>
+      </select>
+
+      <!-- Volume -->
+      <label for="volume">Volume</label>
+      <input
+        type="number"
+        id="volume"
+        min="0"
+        max="100"
+        value="75"
+        step="5"
+      />
+
+      <!-- Ball Speed -->
+      <label for="ballSpeed">Ball Speed</label>
+      <input
+        type="number"
+        id="ballSpeed"
+        min="1"
+        max="10"
+        value="5"
+        step="1"
+      />
+
+      <!-- Theme -->
+      <label for="theme">Theme</label>
+      <select id="theme">
+        <option value="default" selected>Default</option>
+        <option value="dark">Dark</option>
+        <option value="pastel">Pastel</option>
+      </select>
+
+      <!-- NEW: News Ticker Settings -->
+      <h2>News Ticker Settings</h2>
+
+      <label for="tickerSpeed">Ticker Speed (pixels/sec)</label>
+      <input
+        type="number"
+        id="tickerSpeed"
+        min="10"
+        max="300"
+        value="50"
+        step="5"
+      />
+
+      <label for="spacerLength">Spacer Length</label>
+      <input
+        type="number"
+        id="spacerLength"
+        min="10"
+        max="200"
+        value="50"
+        step="5"
+      />
+
+      <label for="spacerType">Spacer Type</label>
+      <select id="spacerType">
+        <option value="space" selected>Spaces</option>
+        <option value="dashed">Dashed</option>
+      </select>
+
+      <!-- Buttons -->
+      <div class="actions">
+        <button class="btn-primary" id="saveSettings">Save</button>
+        <button class="btn-secondary" id="resetSettings">Reset</button>
+      </div>
+
+      <a href="index.html" class="back-link">← Back to Home</a>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Settings Saved</h2>
+          <button class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Your settings have been updated:</p>
+          <ul class="modal-values" id="settingsSummary"></ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" id="okButton">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>Phonics Breaker © 2025</footer>
+
+    <script>
+      const modal = document.getElementById("settingsModal");
+      const settingsSummary = document.getElementById("settingsSummary");
+      const saveBtn = document.getElementById("saveSettings");
+      const resetBtn = document.getElementById("resetSettings");
+      const closeModal = document.getElementById("closeModal");
+      const okButton = document.getElementById("okButton");
+
+      const inputs = {
+        difficulty: document.getElementById("difficulty"),
+        volume: document.getElementById("volume"),
+        ballSpeed: document.getElementById("ballSpeed"),
+        theme: document.getElementById("theme"),
+        tickerSpeed: document.getElementById("tickerSpeed"),
+        spacerLength: document.getElementById("spacerLength"),
+        spacerType: document.getElementById("spacerType"),
+      };
+
+      // Load stored settings
+      window.addEventListener("DOMContentLoaded", () => {
+        const saved = JSON.parse(localStorage.getItem("gameSettings"));
+        if (saved) {
+          Object.keys(saved).forEach((key) => {
+            if (inputs[key]) inputs[key].value = saved[key];
+          });
+        }
+      });
+
+      // Save settings
+      saveBtn.addEventListener("click", () => {
+        const settings = {};
+        Object.keys(inputs).forEach((key) => {
+          settings[key] = inputs[key].value;
+        });
+        localStorage.setItem("gameSettings", JSON.stringify(settings));
+        showModal(settings);
+      });
+
+      // Reset settings
+      resetBtn.addEventListener("click", () => {
+        Object.values(inputs).forEach((el) => {
+          if (el.tagName === "SELECT") el.selectedIndex = 0;
+          else el.value = el.defaultValue || "";
+        });
+        localStorage.removeItem("gameSettings");
+      });
+
+      // Show modal
+      function showModal(settings) {
+        settingsSummary.innerHTML = Object.entries(settings)
+          .map(([k, v]) => `<li>${k}: ${v}</li>`)
+          .join("");
+        modal.classList.remove("hidden");
+        modal.classList.add("visible");
+      }
+
+      [closeModal, okButton].forEach((btn) =>
+        btn.addEventListener("click", () => {
+          modal.classList.remove("visible");
+          modal.classList.add("hidden");
+        })
+      );
+    </script>
   </body>
 </html>
