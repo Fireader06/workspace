@@ -1,15 +1,18 @@
 {
-  "dependencies": {
-    "react": "19.0.0",
-    "react-dom": "19.0.0"
+  "name": "html-css",
+  "version": "1.0.0",
+  "description": "A template for HTML and CSS",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve"
   },
+  "keywords": [
+    "html",
+    "css"
+  ],
+  "author": "Ives van Hoorne",
+  "license": "MIT",
   "devDependencies": {
-    "serve": "14.2.4",
-    "@types/react": "19.0.0",
-    "@types/react-dom": "19.0.0",
-    "typescript": "5.7.2",
-    "parcel-bundler": "1.12.5",
-    "vite": "^6.0.0",
-    "@vitejs/plugin-react": "^4.2.1"
+    "serve": "11.2.0"
   }
 }

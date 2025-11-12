@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+    />
+    <title>Phonics Breaker - Learn Phonics Through Play</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="news-ticker">
+      <div class="ticker-content" id="ticker"></div>
+    </div>
+    
+    <script>
+      const spacerType = "space"; // "space" or "dashed"
+      const spacerLength = 50; // Adjust how long the spacer is
+      const ticker = document.getElementById("ticker");
+      const speed = 50; // pixels per second (scroll speed)
+    
+      fetch("news.json")
+        .then((res) => res.json())
+        .then((newsItems) => {
+          const spacer =
+            spacerType === "dashed"
+              ? " — ".repeat(spacerLength / 2)
+              : "\u00A0".repeat(spacerLength); // Non-breaking spaces
+    
+          function showRandomMessages() {
+            // Shuffle the messages for randomness
+            const shuffled = [...newsItems].sort(() => Math.random() - 0.5);
+            // Join with configurable spacer
+            const text = shuffled.map((item) => item.message).join(spacer) + spacer;
+    
+            ticker.textContent = text;
+    
+            // Calculate how long it takes one full loop to scroll across the screen
+            const width = ticker.offsetWidth;
+            const duration = width / speed;
+    
+            // Restart animation cleanly
+            ticker.style.animation = "none";
+            void ticker.offsetHeight; // force reflow
+            ticker.style.animation = `ticker-scroll ${duration}s linear infinite`;
+          }
+    
+          showRandomMessages();
+        });
+    </script>     
+    
+    <div clss="Home-page">
+      <div class="title-row">
+        <div class="ball"></div>
+        <h1>Phonics Breaker</h1>
+      </div>
+      <p class="Starter">
+        Learn phonics through an exciting brick breaker adventure!
+      </p>
+    </div>
+    <div>
+      <div class="Home-card">
+        <a href="play.html" class="Home-play-button">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-play h-6 w-6 mr-2"
+          >
+            <polygon points="6 3 20 12 6 21 6 3"></polygon>
+          </svg>
+          Play Game
+        </a>               
+        <div class="Play-Subsytem">
+          <a>
+            <button class="Home-levels-button" data-testid="button-level" onclick="window.location.href='Levels.html'">
+              Levels
+            </button>
+          </a>
+          <a>
+            <button class="Home-levels-button" data-testid="button-my-balls" onclick="window.location.href='Balls.html'">
+              My Balls
+            </button>
+          </a>
+          <a>
+            <button class="Home-levels-button" data-testid="button-settings" onclick="window.location.href='settings.html'">
+              Settings
+            </button>
+          </a>
+        </div>
+      </div>
+      <div class="Secondary-home-card">
+      <div class="Home-card">
+        <p class="Home-sub-cards">
+          12
+        </p>
+        <p>
+          Levels
+        <p>
+      </div>
+      <div class="Home-card">
+        <body>
+          <p class= "Home-sub-cards" id="level-count">0</p>
+          <script src="data.js"></script>
+          <script>
+            document.getElementById('level-count').textContent = `${jsonData.length}`;
+          </script>          
+          <p>
+            Ball Types
+          </p>          
+        </body>
+      </div>
+      <div class="Home-card">
+        <body>
+          <p class="Home-sub-cards">
+            AI
+          </p>
+          <p>
+            Powered
+          </p>
+          <div id="ball-display"></div>
+        </body>
+      </div>
+    </div>
+  </body>
+</html>

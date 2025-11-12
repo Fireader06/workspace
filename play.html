@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Play</title>
+    <link rel="stylesheet" href="play-styles.css" />
+  </head>
+  <body>
+    <!-- News Ticker -->
+    <div class="news-ticker">
+      <span id="ticker">Loading news...</span>
+    </div>
+
+    <!-- Header -->
+    <header>
+      <h1>Play the Game</h1>
+      <p class="starter">
+        Get ready to mix, craft, and explore new combinations!
+      </p>
+    </header>
+
+    <!-- Main Game Section -->
+    <main>
+      <!-- Game Canvas Container -->
+      <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+      </div>
+    </main>
+
+    <!-- Footer -->
+
+    <!-- News Ticker Script -->
+    <script>
+      const spacerType = "space";
+      const spacerLength = 50;
+      const ticker = document.getElementById("ticker");
+      const speed = 100;
+
+      fetch("news.json")
+        .then((res) => res.json())
+        .then((newsItems) => {
+          const spacer =
+            spacerType === "dashed"
+              ? " — ".repeat(spacerLength / 2)
+              : "\u00A0".repeat(spacerLength);
+
+          function showRandomMessages() {
+            const shuffled = [...newsItems].sort(() => Math.random() - 0.5);
+            const text =
+              shuffled.map((item) => item.message).join(spacer) + spacer;
+            ticker.textContent = text;
+            const width = ticker.offsetWidth;
+            const duration = width / speed;
+            ticker.style.animation = "none";
+            void ticker.offsetHeight;
+            ticker.style.animation = `ticker-scroll ${duration}s linear infinite`;
+          }
+
+          showRandomMessages();
+        });
+    </script>
+
+    <!-- Game Script -->
+    <script src="game.js"></script>
+  </body>
+</html>

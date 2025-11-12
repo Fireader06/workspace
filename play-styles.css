@@ -1,0 +1,172 @@
+/* Base layout */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  margin: 0;
+  font-family: Fredoka, sans-serif;
+  background: rgb(250, 250, 250);
+  color: #333;
+  cursor: none;
+}
+
+/* News Ticker */
+.news-ticker {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background: hsl(280, 75%, 45%);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.6rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+#ticker {
+  display: inline-block;
+  padding: 0.5rem 0;
+  animation: ticker-scroll linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-top: 2.5rem;
+  color: hsl(280, 75%, 50%);
+}
+
+.starter {
+  color: #555;
+  font-size: 1.1rem;
+}
+
+/* Main Game Layout */
+main {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+  flex: 1;
+  margin-top: 1rem;
+}
+
+/* Inventory Sidebar */
+#inventory {
+  width: 120px;
+  background: #f2f0f7;
+  border-right: 2px solid #dad4e8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+  gap: 10px;
+  box-shadow: inset -2px 0 5px rgba(0, 0, 0, 0.05);
+  border-top-left-radius: 1rem;
+  border-bottom-left-radius: 1rem;
+}
+
+.slot {
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.slot:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: hsl(280, 75%, 50%);
+}
+
+/* Game Container */
+.game-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 1400px;
+  height: 80vh;
+  margin: 1rem auto;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(230, 230, 230);
+  overflow: hidden;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #ebe6f5;
+  border-radius: 1rem;
+  box-shadow: inset 0 0 10px rgba(80, 0, 120, 0.15);
+  cursor: none;
+}
+
+/* Footer */
+footer {
+  margin: 1.5rem 0;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+/* Responsive Tweaks */
+@media (max-width: 800px) {
+  .game-container {
+    height: 70vh;
+    width: 95%;
+  }
+
+  #inventory {
+    width: 90px;
+    gap: 8px;
+  }
+
+  .slot {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+@media (max-width: 500px) {
+  main {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #inventory {
+    flex-direction: row;
+    width: auto;
+    height: 80px;
+    border-right: none;
+    border-top: 2px solid #dad4e8;
+    border-radius: 0;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+
+  .slot {
+    width: 48px;
+    height: 48px;
+  }
+
+  .game-container {
+    height: 65vh;
+    width: 100%;
+    border-radius: 0;
+  }
+}

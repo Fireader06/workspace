@@ -1,0 +1,235 @@
+/* Base Layout */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  margin: 0;
+  padding: 2rem;
+  font-family: "Fredoka", sans-serif;
+  background: rgb(250, 250, 250);
+  color: #333;
+}
+
+/* Header */
+h1 {
+  color: hsl(280, 75%, 45%);
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 2rem;
+}
+
+/* Settings Container */
+.settings-container {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgb(230, 230, 230);
+}
+
+/* Labels and Inputs */
+label {
+  display: block;
+  font-weight: 600;
+  color: #444;
+  margin-top: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+input[type="number"],
+select {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="number"]:focus,
+select:focus {
+  border-color: hsl(280, 75%, 50%);
+  outline: none;
+  box-shadow: 0 0 6px rgba(150, 0, 255, 0.25);
+}
+
+/* Buttons */
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 1.25rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.12s ease;
+}
+
+.btn-primary {
+  background: hsl(280, 75%, 45%);
+  color: white;
+  flex: 1;
+}
+
+.btn-primary:hover {
+  background: hsl(280, 75%, 50%);
+}
+
+.btn-secondary {
+  background: #f2f0f7;
+  color: #333;
+  border: 1px solid #e7e3f4;
+  flex: 1;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+}
+
+/* Back Link */
+.back-link {
+  margin-top: 1.25rem;
+  display: inline-block;
+  text-decoration: none;
+  color: hsl(280, 75%, 45%);
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: hsl(280, 75%, 55%);
+}
+
+/* Footer note */
+footer {
+  margin-top: 3rem;
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+/* Modal overlay & dialog */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 6, 18, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+  opacity: 0;
+  visibility: hidden;
+  padding: 1rem;
+}
+
+/* visible/hidden helpers */
+.modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Modal box */
+.modal {
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbf8ff 100%);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(50, 10, 80, 0.25);
+  border: 1px solid rgba(200, 180, 255, 0.45);
+  overflow: hidden;
+  transform: translateY(10px);
+  transition: transform 0.18s ease;
+}
+
+/* Modal header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(230, 225, 245, 0.7);
+  background: linear-gradient(
+    90deg,
+    rgba(168, 76, 255, 0.07),
+    rgba(240, 240, 255, 0.02)
+  );
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: hsl(280, 75%, 40%);
+}
+
+/* Modal close button */
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #7a4aa6;
+  padding: 0.15rem 0.35rem;
+  border-radius: 8px;
+}
+
+.modal-close:hover {
+  background: rgba(122, 74, 166, 0.06);
+}
+
+/* Modal body */
+.modal-body {
+  padding: 1rem 1.25rem;
+  color: #333;
+}
+
+.modal-body p {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+/* Summary list */
+.modal-values {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.1rem;
+  color: #444;
+}
+
+.modal-values li {
+  margin: 0.25rem 0;
+  font-weight: 600;
+}
+
+/* Modal footer */
+.modal-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid rgba(230, 225, 245, 0.7);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .settings-container {
+    padding: 1.25rem;
+  }
+  .modal {
+    max-width: 92%;
+  }
+}

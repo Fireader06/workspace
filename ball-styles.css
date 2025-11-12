@@ -1,0 +1,257 @@
+/* Bright Theme Layout */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  font-family: Fredoka, sans-serif;
+  background: rgb(231, 231, 231);
+  color: #2b1f35;
+  text-align: center;
+}
+
+/* Title */
+h1 {
+  font-size: 2.5rem;
+  margin: 1.5rem 0;
+  color: hsl(280, 75%, 40%);
+  text-shadow: 0 0 6px rgba(160, 80, 255, 0.3);
+}
+
+/* News Ticker */
+.news-ticker {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background: hsl(280, 75%, 45%);
+  color: white;
+  font-family: Fredoka, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.6rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.ticker-content {
+  display: inline-block;
+  will-change: transform;
+  animation: ticker-scroll linear infinite;
+}
+
+/* The scroll speed is based on element width (set in JS) */
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Ball Container */
+#balls-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 2rem;
+  max-width: 700px;
+}
+
+/* Ball Gradient */
+.ball-gradient {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(
+    --ball-gradient,
+    radial-gradient(circle at 30% 30%, hsl(280, 75%, 70%), hsl(280, 75%, 50%))
+  );
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25),
+    inset 0 -2px 6px rgba(255, 255, 255, 0.3);
+  margin: 0 auto;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+/* Ball Card */
+.ball-card {
+  background: linear-gradient(145deg, #ffffff, #ece6ff);
+  border: 1px solid rgba(120, 80, 255, 0.3);
+  border-radius: 1rem;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.15),
+    -2px -2px 10px rgba(255, 255, 255, 0.9);
+  padding: 0.8rem;
+  width: 110px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+/* Hover Pop-Out */
+.ball-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 0 14px rgba(160, 80, 255, 0.6), 6px 6px 16px rgba(0, 0, 0, 0.2);
+}
+.ball-card:hover .ball-gradient {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px hsl(280, 75%, 60%),
+    inset 0 -3px 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Ball Name */
+.ball-card h2 {
+  font-size: 0.9rem;
+  margin: 0.4rem 0 0;
+  color: hsl(280, 75%, 30%);
+  text-shadow: 0 0 4px rgba(160, 80, 255, 0.3);
+}
+
+/* Rarity Tag */
+.rarity-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  display: inline-block;
+  color: #fff;
+}
+.rarity-tag.Common {
+  background: #9e9e9e;
+}
+.rarity-tag.Uncommon {
+  background: #4caf50;
+}
+.rarity-tag.Rare {
+  background: #2196f3;
+}
+.rarity-tag.Epic {
+  background: #9c27b0;
+}
+.rarity-tag.Legendary {
+  background: #ff9800;
+}
+
+/* Modal Overlay */
+#info-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.6);
+  z-index: 1000;
+}
+
+/* Modal Box */
+.info-box {
+  background: #fff;
+  color: #2b1f35;
+  padding: 24px 28px;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(160, 80, 255, 0.4), 0 8px 20px rgba(0, 0, 0, 0.2);
+  animation: popup 0.25s ease forwards;
+  border: 1px solid hsl(280, 75%, 55%);
+  box-sizing: border-box;
+}
+
+/* Animations */
+@keyframes popup {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Stats */
+.stats-block {
+  margin-top: 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.stats-block p {
+  margin: 0.4rem 0;
+}
+.effect-group {
+  margin: 0.4rem 0;
+  padding-left: 0.5rem;
+  border-left: 3px solid hsl(280, 75%, 55%);
+  font-weight: 500;
+}
+.misc-section ul {
+  list-style: none;
+  padding-left: 1rem;
+  margin: 0.3rem 0;
+}
+.misc-section li {
+  position: relative;
+  margin: 0.2rem 0;
+}
+.misc-section li::before {
+  content: "• ";
+  color: hsl(280, 75%, 55%);
+  font-weight: bold;
+}
+.effect-group strong {
+  color: #4caf50;
+}
+.misc-section li:nth-child(odd)::before {
+  color: #2196f3;
+}
+.misc-section li:nth-child(even)::before {
+  color: #ff9800;
+}
+
+/* Responsive Modal */
+@media (max-width: 600px) {
+  .info-box {
+    max-width: 260px;
+    padding: 16px 20px;
+    font-size: 0.9rem;
+  }
+  .info-box h2 {
+    font-size: 1.1rem;
+  }
+  .info-box p {
+    font-size: 0.85rem;
+  }
+  .info-box button {
+    font-size: 0.9rem;
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  #info-overlay {
+    backdrop-filter: blur(6px);
+    background: rgba(255, 255, 255, 0.8);
+  }
+  .info-box {
+    max-width: 230px;
+    padding: 14px 16px;
+    font-size: 0.85rem;
+  }
+  .info-box h2 {
+    font-size: 1rem;
+  }
+  .info-box p {
+    font-size: 0.8rem;
+  }
+}

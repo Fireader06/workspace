@@ -1,0 +1,137 @@
+h1 {
+  display: block;
+  font-family: Fredoka, sans-serif;
+  text-align: center;
+  font-size: 3rem;
+  line-height: 1;
+}
+.ball {
+  width: 4rem; /* 16 * 0.25rem (Tailwind’s w-16) */
+  height: 4rem;
+  border-radius: 50%;
+  align-self: center;
+  background: radial-gradient(
+    circle at 30% 30%,
+    hsl(280, 75%, 70%),
+    hsl(280, 75%, 50%)
+  );
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* space between the title and the ball */
+  text-align: center;
+  margin-top: 3rem;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* horizontal centering */
+  min-height: 100vh;
+  margin: 0;
+  font-family: sans-serif;
+  text-align: center;
+}
+.Starter {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  color: #525760;
+  font-family: Fredoka, sans-serif;
+}
+.Home-card {
+  border: 1px solid rgb(231, 231, 231);
+  padding: 2rem;
+  background: rgb(245, 245, 245);
+  border-radius: 0.75rem;
+  width: auto;
+  margin: 1rem auto;
+}
+.Home-play-button {
+  display: block; /* makes width work properly */
+  width: 100%; /* fill the parent .Home-card horizontally */
+  padding: 0.8rem 0; /* vertical padding, no horizontal padding */
+  text-align: center; /* center the text */
+  text-decoration: none; /* remove underline */
+  background: hsl(280, 75%, 50%); /* purple theme color */
+  color: white; /* text color */
+  border: none; /* no border */
+  border-radius: 0.8rem; /* rounded corners */
+  font-size: 1.1rem; /* text size */
+  font-weight: 600; /* bold text */
+  cursor: pointer; /* pointer cursor on hover */
+  transition: background 0.25s ease; /* smooth hover transition */
+}
+
+.Home-page {
+  display: flex;
+  align-items: center;
+  justify-items: center;
+  gap: 3rem;
+}
+.Play-subsystem {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.Home-levels-button {
+  flex: 1 1 120px;
+  padding: 0.8rem 0;
+  text-align: center;
+  font-family: Fredoka, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  background: rgb(245, 245, 245);
+  border: 1px solid rgb(231, 231, 231);
+  cursor: pointer;
+  transition: background 0.25s ease;
+  min-width: 210px;
+  margin-top: 10px;
+}
+.Secondary-home-card {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.Home-sub-cards {
+  font-weight: 700;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  margin: 0;
+  margin-right: 4rem;
+  margin-left: 4rem;
+  color: hsl(280, 75%, 50%);
+  font-family: Fredoka, sans-serif;
+}
+.news-ticker {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  background: hsl(280, 75%, 45%);
+  color: white;
+  font-family: Fredoka, sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.6rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.ticker-content {
+  display: inline-block;
+  padding-left: 100%;
+  animation: ticker-scroll 150s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}

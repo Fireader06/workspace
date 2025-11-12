@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ball Library</title>
+    <link rel="stylesheet" href="ball-styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Ball Library</h1>
+    </header>
+
+    <main>
+      <div id="balls-container" aria-live="polite"></div>
+    </main>
+
+    <!-- Modal -->
+    <div id="info-overlay">
+      <div class="info-box">
+        <h2 id="info-title"></h2>
+        <p id="info-text"></p>
+        <button id="close-overlay">Close</button>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script>
+      const container = document.getElementById("balls-container");
+      const overlay = document.getElementById("info-overlay");
+      const infoTitle = document.getElementById("info-title");
+      const infoText = document.getElementById("info-text");
+      const closeOverlay = document.getElementById("close-overlay");
+
+      if (Array.isArray(jsonData)) {
+        jsonData.forEach((ball) => {
+          const card = document.createElement("div");
+          card.className = "ball-card";
+
+          // Use gradient instead of image
+          const img = document.createElement("div");
+          img.className = "ball-gradient";
+          img.style.background =
+            ball.gradient || "linear-gradient(135deg, #999, #555)";
+
+          const name = document.createElement("h2");
+          name.textContent = ball.name;
+
+          card.append(img, name);
+          container.appendChild(card);
+
+          // Modal on click
+          card.addEventListener("click", () => {
+            infoTitle.textContent = ball.name;
+
+            let statsHTML = "";
+
+            if (ball.stats) {
+              const s = ball.stats;
+
+              // Base numeric stats
+              const baseStats = [];
+              if (s.damage !== undefined) baseStats.push(`Damage: ${s.damage}`);
+              if (s.knockback !== undefined)
+                baseStats.push(`Knockback: ${s.knockback}`);
+              if (s.pierce !== undefined) baseStats.push(`Pierce: ${s.pierce}`);
+
+              // Effect subsets
+              const effectGroups = [];
+              if (s.poison) {
+                const durationText = s.duration
+                  ? ` • Duration: ${s.duration}`
+                  : "";
+                effectGroups.push(
+                  `<div class="effect-group"><strong>Poison:</strong>${durationText}</div>`
+                );
+              }
+
+              // Other active effects
+              const miscEffects = [];
+              if (s.areaEffect) miscEffects.push("Area Effect");
+              if (s.slow) miscEffects.push("Slow");
+              if (s.heal) miscEffects.push("Heal");
+              if (s.burn) miscEffects.push("Burn");
+              if (s.freeze) miscEffects.push("Freeze");
+              if (s.shock) miscEffects.push("Shock");
+
+              statsHTML = `
+                <div class="stats-block">
+                  ${
+                    baseStats.length
+                      ? `<p><strong>Stats:</strong><br>${baseStats.join(
+                          "<br>"
+                        )}</p>`
+                      : ""
+                  }
+                  ${
+                    effectGroups.length
+                      ? `<div class="effects-section">${effectGroups.join(
+                          ""
+                        )}</div>`
+                      : ""
+                  }
+                  ${
+                    miscEffects.length
+                      ? `<div class="misc-section"><strong>Other Effects:</strong><ul>${miscEffects
+                          .map((e) => `<li>${e}</li>`)
+                          .join("")}</ul></div>`
+                      : ""
+                  }
+                </div>
+              `;
+            }
+
+            infoText.innerHTML = `
+              <p>${ball.description}</p>
+              <p><strong>Ability:</strong> ${ball.ability}</p>
+              ${statsHTML}
+            `;
+            overlay.style.display = "flex";
+          });
+        });
+      }
+
+      closeOverlay.addEventListener(
+        "click",
+        () => (overlay.style.display = "none")
+      );
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) overlay.style.display = "none";
+      });
+    </script>
+  </body>
+</html>
