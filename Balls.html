@@ -6,9 +6,11 @@
     <title>Ball Library</title>
     <link rel="stylesheet" href="ball-styles.css" />
   </head>
+
   <body>
+    <!-- Shared ticker -->
     <div class="news-ticker">
-      <span id="ticker">Loading news...</span>
+      <div class="ticker-content" id="ticker"></div>
     </div>
 
     <header>
@@ -41,7 +43,6 @@
           const card = document.createElement("div");
           card.className = "ball-card";
 
-          // Use gradient instead of image
           const img = document.createElement("div");
           img.className = "ball-gradient";
           img.style.background =
@@ -61,15 +62,12 @@
 
             if (ball.stats) {
               const s = ball.stats;
-
-              // Base numeric stats
               const baseStats = [];
               if (s.damage !== undefined) baseStats.push(`Damage: ${s.damage}`);
               if (s.knockback !== undefined)
                 baseStats.push(`Knockback: ${s.knockback}`);
               if (s.pierce !== undefined) baseStats.push(`Pierce: ${s.pierce}`);
 
-              // Effect subsets
               const effectGroups = [];
               if (s.poison) {
                 const durationText = s.duration
@@ -80,7 +78,6 @@
                 );
               }
 
-              // Other active effects
               const miscEffects = [];
               if (s.areaEffect) miscEffects.push("Area Effect");
               if (s.slow) miscEffects.push("Slow");
@@ -134,80 +131,8 @@
         if (e.target === overlay) overlay.style.display = "none";
       });
     </script>
-    <script>
-      (function () {
-        const spacerType = "space"; // or "dashed"
-        const spacerLength = 50;
-        const ticker = document.getElementById("ticker");
-        const container = ticker ? ticker.parentElement : null;
-        const speed = 100; // pixels per second
 
-        if (!ticker || !container) return;
-
-        fetch("news.json")
-          .then((res) => {
-            if (!res.ok) throw new Error("Failed to load news.json");
-            return res.json();
-          })
-          .then((newsItems) => {
-            if (!Array.isArray(newsItems) || newsItems.length === 0) {
-              ticker.textContent = "No news available";
-              return;
-            }
-
-            const spacer =
-              spacerType === "dashed"
-                ? " — ".repeat(Math.max(1, Math.floor(spacerLength / 2)))
-                : "\u00A0".repeat(spacerLength);
-
-            function showRandomMessages() {
-              // shuffle and join messages
-              const shuffled = [...newsItems].sort(() => Math.random() - 0.5);
-              const text =
-                shuffled.map((item) => item.message).join(spacer) + spacer;
-              ticker.textContent = text;
-
-              // measure widths (force layout)
-              const tickerWidth = Math.ceil(ticker.offsetWidth);
-              const containerWidth = Math.ceil(container.offsetWidth);
-
-              // compute start and end in pixels: start = containerWidth, end = -tickerWidth
-              const startPx = containerWidth + "px";
-              const endPx = -tickerWidth + "px";
-
-              // set CSS vars used by @keyframes
-              ticker.style.setProperty("--start", startPx);
-              ticker.style.setProperty("--end", endPx);
-
-              // compute duration in seconds (distance = containerWidth + tickerWidth)
-              const distance = containerWidth + tickerWidth;
-              const duration = Math.max(4, distance / speed); // min duration to avoid instant loops
-
-              // restart the animation with the new duration
-              ticker.style.animation = "none";
-              // force reflow so the animation can restart
-              void ticker.offsetHeight;
-              ticker.style.animation = `ticker-scroll ${duration}s linear infinite`;
-            }
-
-            // initial render
-            showRandomMessages();
-
-            // re-run when window resizes (so distances update)
-            let resizeTimer;
-            window.addEventListener("resize", () => {
-              clearTimeout(resizeTimer);
-              resizeTimer = setTimeout(showRandomMessages, 150);
-            });
-
-            // optional: refresh messages periodically (every 60s)
-            setInterval(showRandomMessages, 60000);
-          })
-          .catch((err) => {
-            console.error("Ticker error:", err);
-            ticker.textContent = "Failed to load news";
-          });
-      })();
-    </script>
+    <!-- Shared ticker script -->
+    <script src="ticker.js"></script>
   </body>
 </html>

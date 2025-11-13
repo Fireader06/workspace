@@ -18,21 +18,9 @@
     <h1>Game Settings</h1>
 
     <div class="settings-container">
-      <!-- Difficulty -->
-      <label for="difficulty">Difficulty</label>
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="normal" selected>Normal</option>
-        <option value="hard">Hard</option>
-      </select>
-
       <!-- Volume -->
       <label for="volume">Volume</label>
       <input type="number" id="volume" min="0" max="100" value="75" step="5" />
-
-      <!-- Ball Speed -->
-      <label for="ballSpeed">Ball Speed</label>
-      <input type="number" id="ballSpeed" min="1" max="10" value="5" step="1" />
 
       <!-- Theme -->
       <label for="theme">Theme</label>
@@ -42,12 +30,14 @@
         <option value="pastel">Pastel</option>
       </select>
 
-      <!-- NEW: News Ticker Settings -->
+      <!-- News Ticker Settings -->
       <h2>News Ticker Settings</h2>
 
-      <label for="tickerSpeed">Ticker Speed (pixels/sec)</label>
+      <label for="tickerSpeed"
+        >Ticker Speed (<span id="tickerSpeedValue">50</span> px/sec)</label
+      >
       <input
-        type="number"
+        type="range"
         id="tickerSpeed"
         min="10"
         max="300"
@@ -55,9 +45,11 @@
         step="5"
       />
 
-      <label for="spacerLength">Spacer Length</label>
+      <label for="spacerLength"
+        >Spacer Length (<span id="spacerLengthValue">50</span> px)</label
+      >
       <input
-        type="number"
+        type="range"
         id="spacerLength"
         min="10"
         max="200"
@@ -107,22 +99,37 @@
       const closeModal = document.getElementById("closeModal");
       const okButton = document.getElementById("okButton");
 
+      const tickerSpeedValue = document.getElementById("tickerSpeedValue");
+      const spacerLengthValue = document.getElementById("spacerLengthValue");
+
       const inputs = {
-        difficulty: document.getElementById("difficulty"),
         volume: document.getElementById("volume"),
-        ballSpeed: document.getElementById("ballSpeed"),
         theme: document.getElementById("theme"),
         tickerSpeed: document.getElementById("tickerSpeed"),
         spacerLength: document.getElementById("spacerLength"),
         spacerType: document.getElementById("spacerType"),
       };
 
+      // Live update slider values
+      inputs.tickerSpeed.addEventListener("input", () => {
+        tickerSpeedValue.textContent = inputs.tickerSpeed.value;
+      });
+      inputs.spacerLength.addEventListener("input", () => {
+        spacerLengthValue.textContent = inputs.spacerLength.value;
+      });
+
       // Load stored settings
       window.addEventListener("DOMContentLoaded", () => {
         const saved = JSON.parse(localStorage.getItem("gameSettings"));
         if (saved) {
           Object.keys(saved).forEach((key) => {
-            if (inputs[key]) inputs[key].value = saved[key];
+            if (inputs[key]) {
+              inputs[key].value = saved[key];
+              if (key === "tickerSpeed")
+                tickerSpeedValue.textContent = saved[key];
+              if (key === "spacerLength")
+                spacerLengthValue.textContent = saved[key];
+            }
           });
         }
       });
@@ -143,6 +150,8 @@
           if (el.tagName === "SELECT") el.selectedIndex = 0;
           else el.value = el.defaultValue || "";
         });
+        tickerSpeedValue.textContent = inputs.tickerSpeed.value;
+        spacerLengthValue.textContent = inputs.spacerLength.value;
         localStorage.removeItem("gameSettings");
       });
 
