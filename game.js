@@ -152,10 +152,11 @@ const brickSystem = {
           player.level++;
           player.maxXp = Math.floor(player.maxXp * 1.25);
 
-          // show level-up modal
+          // show modal + pause game
           levelUpModal.visible = true;
           levelUpModal.fadingOut = false;
           levelUpModal.alpha = 0;
+          gamePaused = true;
         }
         this.list.splice(i, 1);
         continue;
@@ -190,6 +191,8 @@ let levelUpModal = {
   alpha: 0,
   fadingOut: false,
 };
+
+let gamePaused = false;
 
 function resetPlayer() {
   player.x = canvas.width / 2;
@@ -599,23 +602,33 @@ Object.assign(dot.style, {
 });
 document.body.appendChild(dot);
 
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && levelUpModal.visible) {
+    levelUpModal.fadingOut = true;
+    gamePaused = false;
+  }
+});
+
 document.addEventListener("mousemove", (e) => {
+  // Always update dot position so it follows the mouse
   mouseClientX = e.clientX;
   mouseClientY = e.clientY;
   dot.style.left = `${mouseClientX}px`;
   dot.style.top = `${mouseClientY}px`;
+
+  // Only update in-canvas tracking and player aiming if not paused
+  const rect = canvas.getBoundingClientRect();
   if (mouseInsideCanvas) {
-    const rect = canvas.getBoundingClientRect();
     mouseCanvasX = e.clientX - rect.left;
     mouseCanvasY = e.clientY - rect.top;
-  }
-});
 
-canvas.addEventListener("mouseenter", () => {
-  mouseInsideCanvas = true;
-  const rect = canvas.getBoundingClientRect();
-  mouseCanvasX = mouseClientX - rect.left;
-  mouseCanvasY = mouseClientY - rect.top;
+    if (!gamePaused) {
+      player.angle = Math.atan2(
+        mouseCanvasY - player.y,
+        mouseCanvasX - player.x
+      );
+    }
+  }
 });
 canvas.addEventListener("mouseleave", () => (mouseInsideCanvas = false));
 document.documentElement.style.cursor = "none";
@@ -624,12 +637,6 @@ canvas.addEventListener("click", () => {
   // only spawn if no active balls
   if (balls.length === 0) {
     balls.push(new Ball(player.x, player.y, player.angle, StarterBall.stats));
-  }
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && levelUpModal.visible) {
-    levelUpModal.fadingOut = true;
   }
 });
 
@@ -734,6 +741,17 @@ function update(timestamp) {
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawSpawnLimits();
+  // If paused, draw UI only and skip logic updates
+  if (gamePaused) {
+    // still draw UI for context
+    drawInventory(bounds);
+    drawHealthBar(bounds);
+    drawXpBar(bounds);
+    drawPlayer();
+    drawLevelUpModal(); // modal on top
+    requestAnimationFrame(update);
+    return;
+  }
   // draw red danger line only between spawn boundaries
   ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
   ctx.lineWidth = 2;
