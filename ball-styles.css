@@ -274,3 +274,53 @@ h1 {
 .buttons {
   border-top: 2px solid black;
 }
+#new-ball-creator {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  border: 2px solid hsl(280, 75%, 55%);
+  border-radius: 1rem;
+  background: #fefbff;
+  box-shadow: 0 0 10px rgba(160, 80, 255, 0.25);
+  width: 80%;
+  max-width: 500px;
+}
+
+#new-ball-creator h2 {
+  color: hsl(280, 75%, 40%);
+  margin-bottom: 0.8rem;
+}
+
+#ball-prompt {
+  width: 100%;
+  min-height: 80px;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.6rem;
+  border: 1px solid rgba(120, 80, 255, 0.4);
+  border-radius: 0.5rem;
+  resize: vertical;
+  background: #fff;
+  color: #2b1f35;
+}
+
+#send-to-ai {
+  margin-top: 0.8rem;
+  padding: 0.6rem 1.2rem;
+  background: hsl(280, 75%, 55%);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#send-to-ai:hover {
+  background: hsl(280, 75%, 45%);
+}
+
+#status {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: hsl(280, 75%, 30%);
+}

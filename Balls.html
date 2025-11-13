@@ -23,6 +23,19 @@
     <main>
       <div id="balls-container" aria-live="polite"></div>
     </main>
+    <main>
+      <div id="balls-container" aria-live="polite"></div>
+
+      <div id="new-ball-creator">
+        <h2>Create a New Ball</h2>
+        <textarea
+          id="ball-prompt"
+          placeholder="Describe your ball idea..."
+        ></textarea>
+        <button id="send-to-ai">Generate Ball</button>
+        <p id="status"></p>
+      </div>
+    </main>
 
     <!-- Modal -->
     <div id="info-overlay">
@@ -133,6 +146,140 @@
       overlay.addEventListener("click", (e) => {
         if (e.target === overlay) overlay.style.display = "none";
       });
+    </script>
+    <script>
+      const API_URL =
+        "https://grove-list-acc-newman.trycloudflare.com/v1/chat/completions";
+      // 👆 must include /v1/chat/completions
+
+      const createBtn = document.getElementById("send-to-ai");
+      const promptBox = document.getElementById("ball-prompt");
+      const statusBox = document.getElementById("status");
+
+      async function createBallWithAI() {
+        const userPrompt = promptBox.value.trim();
+        if (!userPrompt) {
+          alert("Please describe your ball first!");
+          return;
+        }
+
+        statusBox.innerHTML = "🟡 Sending request...";
+        createBtn.disabled = true;
+
+        const systemPrompt = `
+    You are an assistant that designs game balls for a fantasy ball library.
+    Return your answer in **pure JSON only**.
+    Where it says "number" put actual numbers, not words.
+    Each ball has:
+    {
+      "name": "string",
+      "description": "string",
+      "ability": "string",
+      "gradient": "linear-gradient(...)",
+      "stats": {
+        "damage": number,
+        "knockback": number,
+        "pierce": number,
+        "areaEffect": boolean,
+        "slow": boolean,
+        "burn": boolean,
+        "freeze": boolean,
+        "heal": boolean
+      }
+    }`;
+
+        const payload = {
+          model: "YourModelNameHere", // 👈 use model name from /v1/models endpoint
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.8,
+          max_tokens: 300,
+        };
+
+        try {
+          const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer EMPTY", // 👈 required for OpenAI API spec
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const text = await response.text();
+          console.log("[RAW RESPONSE]", text);
+
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("Invalid JSON returned from API: " + text);
+          }
+
+          const message = data.choices?.[0]?.message?.content;
+          if (!message)
+            throw new Error("No message content found in response!");
+
+          console.log("[MODEL MESSAGE]", message);
+
+          let ball;
+          try {
+            // 🧹 Clean markdown fences and extract only the JSON object
+            const jsonMatch = message.match(/\{[\s\S]*\}/);
+            if (!jsonMatch)
+              throw new Error("No JSON object found in model response.");
+
+            const clean = jsonMatch[0];
+            ball = JSON.parse(clean);
+          } catch (e) {
+            throw new Error(
+              "Model output was not valid JSON: " +
+                e.message +
+                "\nRaw: " +
+                message
+            );
+          }
+
+          addBallToLibrary(ball);
+          statusBox.innerHTML = "✅ Ball added successfully!";
+          promptBox.value = "";
+        } catch (err) {
+          console.error("[BALL-ERROR]", err);
+          statusBox.innerHTML = `❌ Error: ${err.message}`;
+        } finally {
+          createBtn.disabled = false;
+        }
+      }
+
+      createBtn.addEventListener("click", createBallWithAI);
+
+      function addBallToLibrary(ball) {
+        const container = document.getElementById("balls-container");
+        const card = document.createElement("div");
+        card.className = "ball-card";
+
+        const img = document.createElement("div");
+        img.className = "ball-gradient";
+        img.style.background =
+          ball.gradient || "linear-gradient(135deg, #999, #555)";
+
+        const name = document.createElement("h2");
+        name.textContent = ball.name;
+
+        card.append(img, name);
+        container.appendChild(card);
+
+        card.addEventListener("click", () => {
+          infoTitle.textContent = ball.name;
+          infoText.innerHTML = `
+            <p>${ball.description}</p>
+            <p><strong>Ability:</strong> ${ball.ability}</p>
+          `;
+          overlay.style.display = "flex";
+        });
+      }
     </script>
   </body>
 </html>
