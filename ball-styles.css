@@ -69,11 +69,6 @@ h1 {
   }
 }
 
-/* pause on hover */
-.news-ticker:hover #ticker {
-  animation-play-state: paused;
-}
-
 /* Ball Container */
 #balls-container {
   display: flex;
@@ -275,4 +270,7 @@ h1 {
   .info-box p {
     font-size: 0.8rem;
   }
+}
+.buttons {
+  border-top: 2px solid black;
 }
