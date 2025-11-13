@@ -26,8 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const width = ticker.offsetWidth;
         const duration = width / speed;
 
+        // update CSS variables for proper movement distance
+        const containerWidth = ticker.parentElement.offsetWidth;
+        ticker.style.setProperty("--start", `${containerWidth}px`);
+        ticker.style.setProperty("--end", `-${width}px`);
+
+        // reset and reapply animation
         ticker.style.animation = "none";
-        void ticker.offsetHeight; // Force reflow
+        void ticker.offsetHeight; // force reflow
         ticker.style.animation = `ticker-scroll ${duration}s linear infinite`;
       }
 
