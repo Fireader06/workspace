@@ -16,9 +16,16 @@ function seededRandom() {
   return x - Math.floor(x);
 }
 
+// For the level-up selection system
+let levelUpChoices = [];
+
 // =================== GAME VARIABLES ===================
 let spawnRateScale = 0.15; // 1.0 = normal speed, <1 = slower, >1 = faster
 let xpGainScale = 1.0; // scale XP gain from bricks (1 = normal, >1 = faster leveling)
+let selectedBall = null; // will be set after StarterBall is defined
+let autoShootTimer = 0;
+const autoShootInterval = 1200; // milliseconds between shots
+let currentBallIndex = 0;
 
 // =================== BALL DATA ===================
 const StarterBall = {
@@ -30,6 +37,7 @@ const StarterBall = {
     "radial-gradient(circle at 30% 30%, hsl(220, 20%, 85%), hsl(220, 15%, 65%))",
   stats: { damage: 25, knockback: 5, pierce: 1 },
 };
+selectedBall = StarterBall;
 
 // =================== BRICK SYSTEM ===================
 class Brick {
@@ -157,6 +165,15 @@ const brickSystem = {
           levelUpModal.fadingOut = false;
           levelUpModal.alpha = 0;
           gamePaused = true;
+
+          // pick 3 random choices (excluding existing inventory names)
+          const ownedNames = new Set(inventory.map((b) => b.name));
+          const available = jsonData.filter((b) => !ownedNames.has(b.name));
+          levelUpChoices = [];
+          while (levelUpChoices.length < 3 && available.length > 0) {
+            const index = Math.floor(Math.random() * available.length);
+            levelUpChoices.push(available.splice(index, 1)[0]);
+          }
         }
         this.list.splice(i, 1);
         continue;
@@ -167,9 +184,9 @@ const brickSystem = {
   },
 };
 
-let dangerLineY = canvas.height * 0.6; // about 3/5 down the screen
+let dangerLineY = canvas.height * 0.725;
 window.addEventListener("resize", () => {
-  dangerLineY = canvas.height * 0.6;
+  dangerLineY = canvas.height * 0.725;
 });
 
 // =================== PLAYER ===================
@@ -375,42 +392,76 @@ function drawLevelUpModal() {
   ctx.save();
   ctx.globalAlpha = levelUpModal.alpha;
 
-  // semi-transparent background
+  // dimmed background
   ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // modal box
-  const boxWidth = 400;
-  const boxHeight = 220;
+  const boxWidth = 600;
+  const boxHeight = 300;
   const x = (canvas.width - boxWidth) / 2;
   const y = (canvas.height - boxHeight) / 2;
 
-  ctx.fillStyle = "rgba(40, 40, 60, 0.9)";
+  ctx.fillStyle = "rgba(40, 40, 60, 0.95)";
   ctx.beginPath();
   ctx.roundRect(x, y, boxWidth, boxHeight, 20);
   ctx.fill();
-
-  // glowing border
   ctx.strokeStyle = "hsl(280, 80%, 70%)";
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // title
-  ctx.font = "bold 46px Fredoka, sans-serif";
+  ctx.font = "bold 40px Fredoka, sans-serif";
   ctx.textAlign = "center";
   ctx.fillStyle = "hsl(280, 85%, 75%)";
-  ctx.fillText("LEVEL UP!", canvas.width / 2, y + 80);
+  ctx.fillText("LEVEL UP!", canvas.width / 2, y + 60);
 
-  // subtext
-  ctx.font = "22px Fredoka, sans-serif";
-  ctx.fillStyle = "white";
-  ctx.fillText(`You reached Level ${player.level}`, canvas.width / 2, y + 130);
+  // show three choices
+  const cardW = 160;
+  const cardH = 180;
+  const gap = 30;
+  const totalW =
+    levelUpChoices.length * cardW + (levelUpChoices.length - 1) * gap;
+  let startX = (canvas.width - totalW) / 2;
 
-  // hint
+  ctx.font = "18px Fredoka, sans-serif";
+  levelUpChoices.forEach((ball, i) => {
+    const bx = startX + i * (cardW + gap);
+    const by = y + 90;
+
+    // card
+    ctx.fillStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bx, by, cardW, cardH, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // gradient preview
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(bx + cardW / 2, by + 50, 25, 0, Math.PI * 2);
+    ctx.fillStyle = ball.gradient
+      .replace("radial-gradient(", "")
+      .replace(")", "");
+    ctx.fill();
+    ctx.restore();
+
+    // text
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(ball.name, bx + cardW / 2, by + 100);
+    ctx.font = "14px Fredoka, sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText(ball.ability, bx + cardW / 2, by + 125);
+  });
+
   ctx.font = "16px Fredoka, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.fillText("Press ESC to continue", canvas.width / 2, y + 175);
-
+  ctx.fillStyle = "rgba(255,255,255,0.6)";
+  ctx.fillText(
+    "Click a ball to choose it",
+    canvas.width / 2,
+    y + boxHeight - 15
+  );
   ctx.restore();
 }
 
@@ -452,7 +503,7 @@ function sweepAABB(cx, cy, vx, vy, radius, rect) {
 
 // =================== BALL SYSTEM ===================
 class Ball {
-  constructor(x, y, angle, stats) {
+  constructor(x, y, angle, stats, gradient) {
     this.x = x;
     this.y = y;
     this.angle = angle;
@@ -461,7 +512,9 @@ class Ball {
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
     this.stats = stats;
+    this.gradientCSS = gradient || "hsl(220,20%,85%),hsl(220,15%,65%)";
     this.returning = false;
+    this.markedForRemoval = false;
   }
 
   update() {
@@ -537,7 +590,7 @@ class Ball {
         this.vy -= 2 * dot * hitNormal.y;
         this.vx += (Math.random() - 0.5) * 1.2;
         this.vy += (Math.random() - 0.5) * 1.2;
-        const spd = Math.hypot(this.vx, this.vy);
+        const spd = Math.hypot(this.vx, this.vy) || 1;
         this.vx = (this.vx / spd) * targetSpeed;
         this.vy = (this.vy / spd) * targetSpeed;
         this.x += hitNormal.x * 0.2;
@@ -559,6 +612,12 @@ class Ball {
   }
 
   draw(ctx) {
+    // try to parse two color stops from the gradient string (expects hsl(...) pairs)
+    const matches = (this.gradientCSS || "").match(/hsl\([^)]+\)/g) || [];
+
+    const c1 = matches[0] || "hsl(220,20%,85%)";
+    const c2 = matches[1] || matches[0] || "hsl(220,15%,65%)";
+
     const grad = ctx.createRadialGradient(
       this.x - this.size * 0.3,
       this.y - this.size * 0.3,
@@ -567,8 +626,9 @@ class Ball {
       this.y,
       this.size
     );
-    grad.addColorStop(0, "hsl(220, 20%, 85%)");
-    grad.addColorStop(1, "hsl(220, 15%, 65%)");
+    grad.addColorStop(0, c1);
+    grad.addColorStop(1, c2);
+
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
@@ -577,6 +637,17 @@ class Ball {
 }
 
 const balls = [];
+
+canvas.addEventListener("mouseenter", (e) => {
+  mouseInsideCanvas = true;
+  const rect = canvas.getBoundingClientRect();
+  mouseCanvasX = mouseClientX - rect.left;
+  mouseCanvasY = mouseClientY - rect.top;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  mouseInsideCanvas = false;
+});
 
 // =================== INPUT ===================
 const keys = {};
@@ -602,10 +673,41 @@ Object.assign(dot.style, {
 });
 document.body.appendChild(dot);
 
+canvas.addEventListener("click", (e) => {
+  if (!levelUpModal.visible) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  const boxWidth = 600;
+  const boxHeight = 300;
+  const y = (canvas.height - boxHeight) / 2;
+
+  const cardW = 160;
+  const cardH = 180;
+  const gap = 30;
+  const totalW =
+    levelUpChoices.length * cardW + (levelUpChoices.length - 1) * gap;
+  let startX = (canvas.width - totalW) / 2;
+
+  for (let i = 0; i < levelUpChoices.length; i++) {
+    const bx = startX + i * (cardW + gap);
+    const by = y + 90;
+    if (mx >= bx && mx <= bx + cardW && my >= by && my <= by + cardH) {
+      const chosen = levelUpChoices[i];
+      inventory.push(chosen);
+      selectedBall = chosen;
+      levelUpModal.fadingOut = true;
+      gamePaused = false;
+      break;
+    }
+  }
+});
+
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && levelUpModal.visible) {
+  if (e.key === "Escape" && levelUpModal.visible && !levelUpModal.fadingOut) {
     levelUpModal.fadingOut = true;
-    gamePaused = false;
   }
 });
 
@@ -633,10 +735,30 @@ document.addEventListener("mousemove", (e) => {
 canvas.addEventListener("mouseleave", () => (mouseInsideCanvas = false));
 document.documentElement.style.cursor = "none";
 
-canvas.addEventListener("click", () => {
-  // only spawn if no active balls
-  if (balls.length === 0) {
-    balls.push(new Ball(player.x, player.y, player.angle, StarterBall.stats));
+// right-click inventory: set selected ball
+canvas.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  const bounds = drawSpawnLimits();
+  const inventoryWidth = 100;
+  const inventoryX = bounds.left - inventoryWidth - 15;
+  const inventoryY = 50;
+  const slotSize = 40;
+  const cols = 2,
+    rows = 4,
+    spacing = 10;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  for (let i = 0; i < inventory.length; i++) {
+    const row = Math.floor(i / cols);
+    const col = i % cols;
+    const x = inventoryX + col * (slotSize + spacing);
+    const y = inventoryY + row * (slotSize + spacing);
+    if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+      selectedBall = inventory[i];
+      break;
+    }
   }
 });
 
@@ -672,6 +794,12 @@ function drawInventory(bounds) {
     ctx.fill();
     ctx.stroke();
     if (inventory[i]) {
+      // use the ball's gradient if present
+      const gstr = inventory[i].gradient || "hsl(220,20%,85%),hsl(220,15%,65%)";
+      const stops = gstr.match(/hsl\([^)]+\)/g) || [];
+      const c1 = stops[0] || "hsl(220,20%,85%)";
+      const c2 = stops[1] || stops[0] || "hsl(220,15%,65%)";
+
       const grad = ctx.createRadialGradient(
         x + slotSize * 0.3,
         y + slotSize * 0.3,
@@ -680,8 +808,9 @@ function drawInventory(bounds) {
         y + slotSize / 2,
         slotSize / 1.2
       );
-      grad.addColorStop(0, "hsl(220, 20%, 85%)");
-      grad.addColorStop(1, "hsl(220, 15%, 65%)");
+      grad.addColorStop(0, c1);
+      grad.addColorStop(1, c2);
+
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(
@@ -729,7 +858,10 @@ function drawSpawnLimits() {
 }
 
 // =================== MAIN LOOP ===================
+let lastTime = 0;
 function update(timestamp) {
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
   const bounds = drawSpawnLimits();
   if (
     !brickSystem.lastSpawn ||
@@ -772,6 +904,22 @@ function update(timestamp) {
     else b.draw(ctx);
   }
   drawLevelUpModal();
+  // === Auto Shooting ===
+  autoShootTimer += deltaTime; // you'll need deltaTime — see below
+  if (autoShootTimer >= autoShootInterval && balls.length === 0) {
+    autoShootTimer = 0;
+    const ballData = inventory[currentBallIndex % inventory.length];
+    balls.push(
+      new Ball(
+        player.x,
+        player.y,
+        player.angle,
+        ballData.stats,
+        ballData.gradient
+      )
+    );
+    currentBallIndex++;
+  }
   requestAnimationFrame(update);
 }
 requestAnimationFrame(update);
