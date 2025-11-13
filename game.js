@@ -16,6 +16,10 @@ function seededRandom() {
   return x - Math.floor(x);
 }
 
+// =================== GAME VARIABLES ===================
+let spawnRateScale = 0.15; // 1.0 = normal speed, <1 = slower, >1 = faster
+let xpGainScale = 1.0; // scale XP gain from bricks (1 = normal, >1 = faster leveling)
+
 // =================== BALL DATA ===================
 const StarterBall = {
   name: "StarterBall",
@@ -31,10 +35,32 @@ const StarterBall = {
 class Brick {
   constructor(x, y, width, height, color, health) {
     Object.assign(this, { x, y, width, height, color, health });
+    this.state = "normal"; // "normal", "charging", "rushing"
+    this.chargeTimer = 0;
   }
+
   update(speed) {
-    this.y += speed;
+    if (this.state === "normal") {
+      this.y += speed;
+      if (this.y + this.height >= dangerLineY) {
+        this.state = "charging";
+        this.chargeTimer = 40; // frames before rushing down
+      }
+    } else if (this.state === "charging") {
+      this.y -= 0.5; // move up slightly
+      this.chargeTimer--;
+      if (this.chargeTimer <= 0) {
+        this.state = "rushing";
+      }
+    } else if (this.state === "rushing") {
+      this.y += 10; // rush down fast
+      if (this.y > canvas.height) {
+        this.markedForRemoval = true;
+        player.health = Math.max(0, player.health - 10); // lose some health
+      }
+    }
   }
+
   draw(ctx) {
     const r = 6;
     ctx.beginPath();
@@ -63,8 +89,17 @@ class Brick {
     ctx.lineTo(this.x, this.y + r);
     ctx.quadraticCurveTo(this.x, this.y, this.x + r, this.y);
     ctx.closePath();
-    ctx.fillStyle = this.color;
+
+    // flash red while charging
+    if (this.state === "charging" && this.chargeTimer % 10 < 5) {
+      ctx.fillStyle = "hsl(0, 70%, 50%)";
+    } else {
+      ctx.fillStyle = this.color;
+    }
+
     ctx.fill();
+
+    // health text
     ctx.fillStyle = "white";
     ctx.font = "bold 16px Fredoka, sans-serif";
     ctx.textAlign = "center";
@@ -110,17 +145,52 @@ const brickSystem = {
       const b = this.list[i];
       b.update(this.speed);
       if (b.health <= 0) {
+        // gain XP
+        player.xp += 10 * xpGainScale; // you can adjust the base 10 value later
+        if (player.xp >= player.maxXp) {
+          player.xp -= player.maxXp;
+          player.level++;
+          player.maxXp = Math.floor(player.maxXp * 1.25);
+
+          // show level-up modal
+          levelUpModal.visible = true;
+          levelUpModal.fadingOut = false;
+          levelUpModal.alpha = 0;
+        }
         this.list.splice(i, 1);
         continue;
       }
       b.draw(ctx);
-      if (b.y > canvas.height) this.list.splice(i, 1);
+      if (b.markedForRemoval || b.y > canvas.height) this.list.splice(i, 1);
     }
   },
 };
 
+let dangerLineY = canvas.height * 0.6; // about 3/5 down the screen
+window.addEventListener("resize", () => {
+  dangerLineY = canvas.height * 0.6;
+});
+
 // =================== PLAYER ===================
-const player = { x: 0, y: 0, angle: 0, speed: 5, size: 28 };
+const player = {
+  x: 0,
+  y: 0,
+  angle: 0,
+  speed: 5,
+  size: 28,
+  health: 100,
+  maxHealth: 100,
+  xp: 0,
+  maxXp: 100,
+  level: 1,
+};
+
+let levelUpModal = {
+  visible: false,
+  alpha: 0,
+  fadingOut: false,
+};
+
 function resetPlayer() {
   player.x = canvas.width / 2;
   player.y = canvas.height - 80;
@@ -158,6 +228,186 @@ function drawPlayer() {
   ctx.lineTo(-player.size * 0.6, -player.size * 0.5);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
+}
+
+function drawHealthBar(bounds) {
+  const barWidth = 20;
+  const barHeight = 200;
+  const x = bounds.right + 20; // position just right of the right boundary line
+  const y = (canvas.height - barHeight) / 2;
+
+  // background
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(x, y, barWidth, barHeight);
+
+  // health fill
+  const healthRatio = Math.max(0, player.health / player.maxHealth);
+  const filledHeight = barHeight * healthRatio;
+  const fillY = y + (barHeight - filledHeight);
+
+  const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+  gradient.addColorStop(0, "hsl(120, 80%, 50%)"); // green top
+  gradient.addColorStop(1, "hsl(0, 70%, 45%)"); // red bottom
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, fillY, barWidth, filledHeight);
+
+  // outline
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, barWidth, barHeight);
+
+  // label
+  ctx.font = "bold 16px Fredoka, sans-serif";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.fillText("HP", x + barWidth / 2, y - 8);
+}
+
+function updatePlayer(bounds) {
+  if (keys["w"] || keys["arrowup"]) player.y -= player.speed;
+  if (keys["s"] || keys["arrowdown"]) player.y += player.speed;
+  if (keys["a"] || keys["arrowleft"]) player.x -= player.speed;
+  if (keys["d"] || keys["arrowright"]) player.x += player.speed;
+
+  // keep inside horizontal spawn bounds and bottom/top limits
+  player.x = Math.max(
+    bounds.left + player.size / 2,
+    Math.min(bounds.right - player.size / 2, player.x)
+  );
+  player.y = Math.max(
+    player.size / 2,
+    Math.min(canvas.height - player.size / 2, player.y)
+  );
+
+  if (mouseInsideCanvas) {
+    player.angle = Math.atan2(mouseCanvasY - player.y, mouseCanvasX - player.x);
+  }
+
+  // --- Player collision with bricks (circle vs rect) ---
+  // Run this every frame so the player cannot move through moving bricks.
+  const radius = player.size / 2;
+  for (const b of brickSystem.list) {
+    // closest point on rectangle to the player's center
+    const closestX = Math.max(b.x, Math.min(player.x, b.x + b.width));
+    const closestY = Math.max(b.y, Math.min(player.y, b.y + b.height));
+
+    let dx = player.x - closestX;
+    let dy = player.y - closestY;
+    const dist2 = dx * dx + dy * dy;
+
+    if (dist2 < radius * radius) {
+      // overlapping: push the player out along the contact normal
+      let dist = Math.sqrt(dist2);
+      if (dist === 0) {
+        // rare edge case: center exactly on edge/corner — nudge upward
+        dx = 0;
+        dy = -1;
+        dist = 1;
+      }
+      const overlap = radius - dist;
+      player.x += (dx / dist) * overlap;
+      player.y += (dy / dist) * overlap;
+    }
+  }
+
+  // clamp again in case collision pushed the player out of bounds
+  player.x = Math.max(
+    bounds.left + player.size / 2,
+    Math.min(bounds.right - player.size / 2, player.x)
+  );
+  player.y = Math.max(
+    player.size / 2,
+    Math.min(canvas.height - player.size / 2, player.y)
+  );
+}
+
+function drawXpBar(bounds) {
+  const barWidth = 200;
+  const barHeight = 26;
+  const x = bounds.right + 75; // just to the right of the boundary line
+  const y = (canvas.height - 200) / 2 - 150; // above the health bar
+
+  // background
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(x, y, barWidth, barHeight);
+
+  // XP fill
+  const xpRatio = Math.min(1, player.xp / player.maxXp);
+  const fillWidth = barWidth * xpRatio;
+  const gradient = ctx.createLinearGradient(x, y, x + barWidth, y);
+  gradient.addColorStop(0, "hsl(200, 80%, 60%)");
+  gradient.addColorStop(1, "hsl(260, 80%, 65%)");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, fillWidth, barHeight);
+
+  // outline
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, barWidth, barHeight);
+
+  // text label
+  ctx.font = "bold 14px Fredoka, sans-serif";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`Lv ${player.level}`, x + barWidth / 2, y + barHeight / 2);
+}
+
+function drawLevelUpModal() {
+  if (!levelUpModal.visible && levelUpModal.alpha <= 0) return;
+
+  // fade logic
+  if (levelUpModal.visible && !levelUpModal.fadingOut) {
+    levelUpModal.alpha = Math.min(1, levelUpModal.alpha + 0.08);
+  } else if (levelUpModal.fadingOut) {
+    levelUpModal.alpha = Math.max(0, levelUpModal.alpha - 0.08);
+    if (levelUpModal.alpha === 0) {
+      levelUpModal.visible = false;
+      levelUpModal.fadingOut = false;
+    }
+  }
+
+  ctx.save();
+  ctx.globalAlpha = levelUpModal.alpha;
+
+  // semi-transparent background
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // modal box
+  const boxWidth = 400;
+  const boxHeight = 220;
+  const x = (canvas.width - boxWidth) / 2;
+  const y = (canvas.height - boxHeight) / 2;
+
+  ctx.fillStyle = "rgba(40, 40, 60, 0.9)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, boxWidth, boxHeight, 20);
+  ctx.fill();
+
+  // glowing border
+  ctx.strokeStyle = "hsl(280, 80%, 70%)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // title
+  ctx.font = "bold 46px Fredoka, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "hsl(280, 85%, 75%)";
+  ctx.fillText("LEVEL UP!", canvas.width / 2, y + 80);
+
+  // subtext
+  ctx.font = "22px Fredoka, sans-serif";
+  ctx.fillStyle = "white";
+  ctx.fillText(`You reached Level ${player.level}`, canvas.width / 2, y + 130);
+
+  // hint
+  ctx.font = "16px Fredoka, sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.fillText("Press ESC to continue", canvas.width / 2, y + 175);
+
   ctx.restore();
 }
 
@@ -371,7 +621,16 @@ canvas.addEventListener("mouseleave", () => (mouseInsideCanvas = false));
 document.documentElement.style.cursor = "none";
 
 canvas.addEventListener("click", () => {
-  balls.push(new Ball(player.x, player.y, player.angle, StarterBall.stats));
+  // only spawn if no active balls
+  if (balls.length === 0) {
+    balls.push(new Ball(player.x, player.y, player.angle, StarterBall.stats));
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && levelUpModal.visible) {
+    levelUpModal.fadingOut = true;
+  }
 });
 
 // =================== INVENTORY ===================
@@ -467,14 +726,24 @@ function update(timestamp) {
   const bounds = drawSpawnLimits();
   if (
     !brickSystem.lastSpawn ||
-    timestamp - brickSystem.lastSpawn > brickSystem.spawnInterval
+    timestamp - brickSystem.lastSpawn >
+      brickSystem.spawnInterval / spawnRateScale
   ) {
     brickSystem.spawn();
     brickSystem.lastSpawn = timestamp;
   }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawSpawnLimits();
+  // draw red danger line only between spawn boundaries
+  ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bounds.left, dangerLineY);
+  ctx.lineTo(bounds.right, dangerLineY);
+  ctx.stroke();
   drawInventory(bounds);
+  drawHealthBar(bounds);
+  drawXpBar(bounds);
   brickSystem.update();
   updatePlayer(bounds);
   drawPlayer();
@@ -484,6 +753,7 @@ function update(timestamp) {
     if (b.markedForRemoval) balls.splice(i, 1);
     else b.draw(ctx);
   }
+  drawLevelUpModal();
   requestAnimationFrame(update);
 }
 requestAnimationFrame(update);
