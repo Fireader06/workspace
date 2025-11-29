@@ -13,7 +13,40 @@
       rel="stylesheet"
     />
   </head>
+  <style>
+    #bottomBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
 
+      background: rgb(235, 235, 235);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #bottomBar button {
+      background: hsl(280, 75%, 50%);
+      color: rgb(255, 255, 255);
+      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #bottomBar button:hover {
+      background: hsl(280, 75%, 50%);
+    }
+  </style>
+  <div id="bottomBar">
+    <button onclick="location.href='index.html'">Back to Home</button>
+  </div>
   <body>
     <h1>Game Settings</h1>
 
@@ -68,8 +101,6 @@
         <button class="btn-primary" id="saveSettings">Save</button>
         <button class="btn-secondary" id="resetSettings">Reset</button>
       </div>
-
-      <a href="index.html" class="back-link">← Back to Home</a>
     </div>
 
     <!-- Modal -->

@@ -1,12 +1,188 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <title>Page 2</title>
+    <title>Levels</title>
+    <style>
+      #clearHistory {
+        margin-top: 15px;
+      }
+      h1{
+        padding-top: 10px;
+        padding-left: 85px;
+      }
+      body {
+        font-family: sans-serif;
+        background: rgb(231, 231, 231);
+        color: hsl(280, 75%, 50%);
+        margin: 0;
+        text-align: center;
+        padding:20px
+      }
+      /* News Ticker */
+.news-ticker {
+  width: calc(100% + 40px);
+  overflow: hidden;
+  white-space: nowrap;
+  background: hsl(280, 75%, 45%);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.6rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+  margin-top: -20px;
+  margin-left: -20px;
+  margin-right: -20px;
+}
+
+#ticker {
+  display: inline-block;
+  padding: 0.5rem 0;
+  animation: ticker-scroll linear infinite;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .card {
+        width: 220px;
+        background: rgb(224, 224, 224);
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
+      }
+
+      .card img {
+        width: 100%;
+        border-radius: 6px;
+      }
+
+      .card:hover {
+        background: hsl(0, 0%, 81%);
+        color: hsl(280, 74%, 38%);
+      }
+      #bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+
+  background: rgb(238, 238, 238);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  box-shadow: 0 -3px 8px rgba(0,0,0,0.15);
+}
+
+#bottomBar button {
+  background: hsl(280, 75%, 50%);
+  color: rgb(255, 255, 255);
+  border: none;
+  padding: 10px 20px;
+  font-size: 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#bottomBar button:hover {
+  background: hsl(280, 75%, 50%);
+}
+    </style>
   </head>
+  <div id="bottomBar">
+    <button onclick="location.href='index.html'">Back to Home</button>
+  </div>  
+      <!-- News Ticker -->
+      <div class="news-ticker">
+        <span id="ticker">Loading news...</span>
+      </div>
   <body>
-    <h1>Welcome to Page 3</h1>
-    <p>This should be completely separate from the first page.</p>
-    <a href="index.html">Back to Home</a>
+    <div style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+">
+  <h1 style="flex:1; text-align:center; margin:0; color:hsl(280,75%,50%);">
+    Saved Levels
+  </h1>
+
+  <button id="clearHistory" style="
+    background:hsl(280,75%,50%);
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    font-size:14px;
+    cursor:pointer;
+    margin-left:20px;
+  ">
+    Clear History
+  </button>
+</div>
+    </h1>
+    <div class="grid" id="grid"></div>
+
+    <script>
+      const levels = JSON.parse(localStorage.getItem("levels") || "[]").sort(
+        (a, b) => b.timestamp - a.timestamp
+      ); // newest first
+      const grid = document.getElementById("grid");
+
+      levels.forEach((level) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+    <img src="${level.image}">
+    <p><b>Seed:</b> ${level.seed}</p>
+    <p>${new Date(level.timestamp).toLocaleString()}</p>
+  `;
+
+        card.onclick = () => {
+          localStorage.setItem("playSeed", level.seed);
+          window.location.href = "play.html";
+        };
+
+        grid.appendChild(card);
+      });
+    </script>
+    <script>
+      document.getElementById("clearHistory").onclick = () => {
+        const confirmClear = confirm(
+          "Are you sure you want to delete ALL saved levels?"
+        );
+        if (!confirmClear) return;
+
+        localStorage.removeItem("levels");
+
+        // Refresh the grid display
+        grid.innerHTML =
+          "<p style='color:#hsl(280, 75%, 50%);'>No levels saved.</p>";
+      };
+    </script>
+    <script>
+      // Load saved levels from localStorage
+      const savedLevels = JSON.parse(localStorage.getItem("savedLevels") || "[]");
+    
+      // Display how many levels there are
+      document.getElementById("Level-count").textContent = savedLevels.length;
+    </script>  
+    <script src="ticker.js"></script>  
   </body>
 </html>

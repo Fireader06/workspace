@@ -6,7 +6,40 @@
     <title>Ball Library</title>
     <link rel="stylesheet" href="ball-styles.css" />
   </head>
+  <style>
+    #bottomBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
 
+      background: rgb(226, 226, 226);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #bottomBar button {
+      background: hsl(280, 75%, 50%);
+      color: rgb(255, 255, 255);
+      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #bottomBar button:hover {
+      background: hsl(280, 75%, 50%);
+    }
+  </style>
+  <div id="bottomBar">
+    <button onclick="location.href='index.html'">Back to Home</button>
+  </div>
   <body>
     <!-- Shared ticker -->
     <div class="news-ticker">
@@ -19,37 +52,40 @@
     <header>
       <h1>Ball Library</h1>
     </header>
-
     <main>
       <div id="balls-container" aria-live="polite"></div>
-    </main>
-    <main>
-      <div id="balls-container" aria-live="polite"></div>
-
-      <div id="new-ball-creator">
-        <h2>Create a New Ball</h2>
-        <textarea
-          id="ball-prompt"
-          placeholder="Describe your ball idea..."
-        ></textarea>
-        <button id="send-to-ai">Generate Ball</button>
-        <p id="status"></p>
-        <div
-          id="response-log"
-          style="
-            margin-top: 15px;
-            padding: 10px;
-            background: #111;
-            color: #0f0;
-            white-space: pre-wrap;
-            font-family: monospace;
-            border-radius: 6px;
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #333;
-          "
-        ></div>
+      <div
+        id="merge-zone"
+        style="
+          width: 220px;
+          height: 120px;
+          border: 3px dashed #aaa;
+          border-radius: 12px;
+          margin: 20px auto;
+          text-align: center;
+          padding: 20px;
+          white-space: pre-line;
+          user-select: none;
+        "
+      >
+        Drag a ball here to start merge
       </div>
+      <button
+        id="reset-balls"
+        style="
+          margin: 20px auto;
+          display: block;
+          padding: 10px 18px;
+          font-size: 1rem;
+          border-radius: 8px;
+          border: none;
+          background: hsl(0, 70%, 55%);
+          color: white;
+          cursor: pointer;
+        "
+      >
+        Reset Balls to Starter Set
+      </button>
     </main>
 
     <!-- Modal -->
@@ -63,290 +99,225 @@
 
     <script src="data.js"></script>
     <script>
-      const container = document.getElementById("balls-container");
-      const overlay = document.getElementById("info-overlay");
-      const infoTitle = document.getElementById("info-title");
-      const infoText = document.getElementById("info-text");
-      const closeOverlay = document.getElementById("close-overlay");
+      /* ==========================================================
+         Drag-to-Merge (two-drop) + Advanced Modal + AI Fusion
+         - Uses advanced modal for viewing
+         - Drag two balls into #merge-zone (one after the other)
+         - Custom merge-confirm modal (no alerts/confirm)
+         - Saves merged balls to localStorage "merged"
+         - Provides jsonData to the AI as examples
+         ========================================================== */
 
-      if (Array.isArray(jsonData)) {
-        jsonData.forEach((ball) => {
-          const card = document.createElement("div");
-          card.className = "ball-card";
-
-          const img = document.createElement("div");
-          img.className = "ball-gradient";
-          img.style.background =
-            ball.gradient || "linear-gradient(135deg, #999, #555)";
-
-          const name = document.createElement("h2");
-          name.textContent = ball.name;
-
-          card.append(img, name);
-          container.appendChild(card);
-
-          // Modal on click
-          card.addEventListener("click", () => {
-            infoTitle.textContent = ball.name;
-
-            let statsHTML = "";
-
-            if (ball.stats) {
-              const s = ball.stats;
-              const baseStats = [];
-              if (s.damage !== undefined) baseStats.push(`Damage: ${s.damage}`);
-              if (s.knockback !== undefined)
-                baseStats.push(`Knockback: ${s.knockback}`);
-              if (s.pierce !== undefined) baseStats.push(`Pierce: ${s.pierce}`);
-
-              const effectGroups = [];
-              if (s.poison) {
-                const durationText = s.duration
-                  ? ` • Duration: ${s.duration}`
-                  : "";
-                effectGroups.push(
-                  `<div class="effect-group"><strong>Poison:</strong>${durationText}</div>`
-                );
-              }
-
-              const miscEffects = [];
-              if (s.areaEffect) miscEffects.push("Area Effect");
-              if (s.slow) miscEffects.push("Slow");
-              if (s.heal) miscEffects.push("Heal");
-              if (s.burn) miscEffects.push("Burn");
-              if (s.freeze) miscEffects.push("Freeze");
-              if (s.shock) miscEffects.push("Shock");
-
-              statsHTML = `
-                <div class="stats-block">
-                  ${
-                    baseStats.length
-                      ? `<p><strong>Stats:</strong><br>${baseStats.join(
-                          "<br>"
-                        )}</p>`
-                      : ""
-                  }
-                  ${
-                    effectGroups.length
-                      ? `<div class="effects-section">${effectGroups.join(
-                          ""
-                        )}</div>`
-                      : ""
-                  }
-                  ${
-                    miscEffects.length
-                      ? `<div class="misc-section"><strong>Other Effects:</strong><ul>${miscEffects
-                          .map((e) => `<li>${e}</li>`)
-                          .join("")}</ul></div>`
-                      : ""
-                  }
-                </div>
-              `;
-            }
-
-            infoText.innerHTML = `
-              <p>${ball.description}</p>
-              <p><strong>Ability:</strong> ${ball.ability}</p>
-              ${statsHTML}
-            `;
-            overlay.style.display = "flex";
-          });
-        });
-      }
-
-      closeOverlay.addEventListener(
-        "click",
-        () => (overlay.style.display = "none")
-      );
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) overlay.style.display = "none";
-      });
-    </script>
-    <script>
-      const API_URL =
-        "https://reporters-guarantee-craft-cancel.trycloudflare.com/v1/chat/completions";
-      // 👆 must include /v1/chat/completions
-
-      const createBtn = document.getElementById("send-to-ai");
-      const promptBox = document.getElementById("ball-prompt");
-      const statusBox = document.getElementById("status");
-
-      function logResponse(text) {
-        const box = document.getElementById("response-log");
-        box.textContent += text + "\n\n-----------------------\n\n";
-        box.scrollTop = box.scrollHeight;
-      }
-
-      async function createBallWithAI() {
-        const userPrompt = promptBox.value.trim();
-        if (!userPrompt) {
-          alert("Please describe your ball first!");
-          return;
-        }
-
-        statusBox.innerHTML = "🟡 Sending request...";
-        createBtn.disabled = true;
-
-        const systemPrompt = `
-    You are an assistant that designs game balls for a fantasy ball library.
-    Return your answer in **pure JSON only**.
-    Where it says "number" put actual numbers, not words.
-    There is NOTHING in this game excpet balls, so don't try to add anything extra.
-    Do not put any extra efects, all efects are put down as a boolean in the example.
-    Each ball has:
-    {
-      "name": "string",
-      "description": "string",
-      "ability": "string",
-      "gradient": "linear-gradient(...)",
-      "stats": {
-        "damage": number,
-        "burn": boolean,
-        "freeze": boolean,
-        "shock": boolean,
-        "poison": boolean,
-        "slow": boolean,
-        "heal": boolean,
-        "knockback": number,
-        "pierce": number,
-        "areaEffect": boolean,
-        "duration": number
-      }
-      Here is the example starter ball from the game, 
-      {
-    name: "StarterBall",
-    description:
-      "A simple, balanced orb that serves as the foundation for all others.",
-    ability: "Bounce",
-    gradient:
-      "radial-gradient(circle at 30% 30%, hsl(220, 20%, 85%), hsl(220, 15%, 65%))",
-    stats: {
-      damage: 25,
-      burn: false,
-      freeze: false,
-      shock: false,
-      poison: false,
-      slow: false,
-      heal: false,
-      knockback: 5,
-      pierce: 1,
-      areaEffect: false,
-      duration: 2,
-    }
-    another example,
-    {
-    name: "AetherBall",
-    description:
-      "A radiant orb infused with celestial energy that restores and empowers allies.",
-    ability: "Renew",
-    gradient:
-      "radial-gradient(circle at 30% 30%, hsl(280, 70%, 80%), hsl(320, 60%, 55%))",
-    stats: {
-      damage: 20,
-      burn: false,
-      freeze: false,
-      shock: false,
-      poison: false,
-      slow: false,
-      heal: true,
-      knockback: 0,
-      pierce: 0,
-      areaEffect: true,
-      duration: 10,
-    }
-    }`;
-
-        const payload = {
-          model: "YourModelNameHere", // 👈 use model name from /v1/models endpoint
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: 0.8,
-          max_tokens: 300,
-        };
-
-        try {
-          const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: "Bearer EMPTY", // 👈 required for OpenAI API spec
+      (function () {
+        /* ---------------------------
+           Base example JSONs (provided)
+           --------------------------- */
+        const jsonData = [
+          {
+            name: "StarterBall",
+            description:
+              "A simple, balanced orb that serves as the foundation for all others.",
+            ability: "Bounce",
+            gradient:
+              "radial-gradient(circle at 30% 30%, hsl(220, 20%, 85%), hsl(220, 15%, 65%))",
+            stats: {
+              damage: 25,
+              burn: false,
+              freeze: false,
+              shock: false,
+              poison: false,
+              slow: false,
+              heal: false,
+              knockback: 5,
+              pierce: 1,
+              areaEffect: false,
+              duration: 2,
             },
-            body: JSON.stringify(payload),
-          });
+          },
+          {
+            name: "TerraBall",
+            description:
+              "A dense orb of earth energy that shakes the ground upon impact.",
+            ability: "Quake",
+            gradient:
+              "radial-gradient(circle at 30% 30%, hsl(35, 60%, 65%), hsl(25, 50%, 40%))",
+            stats: {
+              damage: 60,
+              burn: false,
+              freeze: false,
+              shock: false,
+              poison: false,
+              slow: true,
+              heal: false,
+              knockback: 15,
+              pierce: 0,
+              areaEffect: true,
+              duration: 3,
+            },
+          },
+          {
+            name: "AetherBall",
+            description:
+              "A radiant orb infused with celestial energy that restores and empowers allies.",
+            ability: "Renew",
+            gradient:
+              "radial-gradient(circle at 30% 30%, hsl(280, 70%, 80%), hsl(320, 60%, 55%))",
+            stats: {
+              damage: 20,
+              burn: false,
+              freeze: false,
+              shock: false,
+              poison: false,
+              slow: false,
+              heal: true,
+              knockback: 0,
+              pierce: 0,
+              areaEffect: true,
+              duration: 10,
+            },
+          },
+          {
+            name: "GaleBall",
+            description:
+              "A swift orb of whirling air that knocks enemies back with fierce gusts.",
+            ability: "Gust",
+            gradient:
+              "radial-gradient(circle at 30% 30%, hsl(190, 75%, 85%), hsl(210, 65%, 60%))",
+            stats: {
+              damage: 30,
+              burn: false,
+              freeze: false,
+              shock: false,
+              poison: false,
+              slow: false,
+              heal: false,
+              knockback: 20,
+              pierce: 1,
+              areaEffect: false,
+              duration: 4,
+            },
+          },
+        ];
 
-          const text = await response.text();
-          logResponse("[RAW RESPONSE]\n" + text);
-
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            throw new Error("Invalid JSON returned from API: " + text);
-          }
-
-          const message = data.choices?.[0]?.message?.content;
-          if (!message)
-            throw new Error("No message content found in response!");
-
-          logResponse("[MODEL MESSAGE]\n" + message);
-
-          let ball;
-          try {
-            // 🧹 Clean markdown fences and extract only the JSON object
-            const jsonMatch = message.match(/\{[\s\S]*\}/);
-            if (!jsonMatch)
-              throw new Error("No JSON object found in model response.");
-
-            const clean = jsonMatch[0];
-            ball = JSON.parse(clean);
-          } catch (e) {
-            throw new Error(
-              "Model output was not valid JSON: " +
-                e.message +
-                "\nRaw: " +
-                message
-            );
-          }
-
-          addBallToLibrary(ball);
-          statusBox.innerHTML = "✅ Ball added successfully!";
-          promptBox.value = "";
-        } catch (err) {
-          logResponse("[BALL-ERROR]\n" + err.message);
-          statusBox.innerHTML = `❌ Error: ${err.message}`;
-        } finally {
-          createBtn.disabled = false;
-        }
-      }
-
-      createBtn.addEventListener("click", createBallWithAI);
-
-      function addBallToLibrary(ball) {
+        /* ---------------------------
+           DOM references
+           --------------------------- */
         const container = document.getElementById("balls-container");
-        const card = document.createElement("div");
-        card.className = "ball-card";
+        const mergeZone = document.getElementById("merge-zone");
+        const infoOverlay = document.getElementById("info-overlay");
+        const infoTitle = document.getElementById("info-title");
+        const infoText = document.getElementById("info-text");
+        const closeOverlay = document.getElementById("close-overlay");
 
-        const img = document.createElement("div");
-        img.className = "ball-gradient";
-        img.style.background =
-          ball.gradient || "linear-gradient(135deg, #999, #555)";
+        /* We'll create a custom merge confirmation overlay element dynamically
+           so it uses your existing .info-box styling. */
+        const mergeOverlay = document.createElement("div");
+        mergeOverlay.id = "merge-confirm-overlay";
+        mergeOverlay.style.position = "fixed";
+        mergeOverlay.style.top = 0;
+        mergeOverlay.style.left = 0;
+        mergeOverlay.style.width = "100vw";
+        mergeOverlay.style.height = "100vh";
+        mergeOverlay.style.display = "none";
+        mergeOverlay.style.justifyContent = "center";
+        mergeOverlay.style.alignItems = "center";
+        mergeOverlay.style.backdropFilter = "blur(8px)";
+        mergeOverlay.style.background = "rgba(255,255,255,0.6)";
+        mergeOverlay.style.zIndex = 1100;
+        mergeOverlay.innerHTML = `
+          <div class="info-box" role="dialog" aria-modal="true" id="merge-box" style="max-width:420px;">
+            <h2 id="merge-title">Merge Confirmation</h2>
+            <div id="merge-body" style="text-align:left; margin-top:0.6rem;"></div>
+            <div style="display:flex; gap:0.6rem; justify-content:center; margin-top:1rem;">
+              <button id="merge-cancel" class="merge-btn" style="padding:0.6rem 1rem; border-radius:0.6rem; border:1px solid #ddd; cursor:pointer;">Cancel</button>
+              <button id="merge-confirm" class="merge-btn" style="padding:0.6rem 1rem; border-radius:0.6rem; background:hsl(280,75%,55%); color:white; border:none; cursor:pointer;">Merge</button>
+            </div>
+            <div id="merge-status" style="margin-top:0.8rem; font-size:0.9rem; color:hsl(280,75%,30%); display:none;"></div>
+          </div>
+        `;
+        document.body.appendChild(mergeOverlay);
 
-        const name = document.createElement("h2");
-        name.textContent = ball.name;
+        /* also create a simple status-only overlay for errors / info (re-uses .info-box) */
+        const statusOverlay = document.createElement("div");
+        statusOverlay.id = "status-overlay";
+        statusOverlay.style.position = "fixed";
+        statusOverlay.style.top = 0;
+        statusOverlay.style.left = 0;
+        statusOverlay.style.width = "100vw";
+        statusOverlay.style.height = "100vh";
+        statusOverlay.style.display = "none";
+        statusOverlay.style.justifyContent = "center";
+        statusOverlay.style.alignItems = "center";
+        statusOverlay.style.backdropFilter = "blur(8px)";
+        statusOverlay.style.background = "rgba(255,255,255,0.6)";
+        statusOverlay.style.zIndex = 1200;
+        statusOverlay.innerHTML = `
+          <div class="info-box" id="status-box" style="max-width:380px;">
+            <h2 id="status-title">Status</h2>
+            <div id="status-body" style="margin-top:0.6rem; text-align:left;"></div>
+            <div style="display:flex; justify-content:center; margin-top:1rem;">
+              <button id="status-ok" style="padding:0.6rem 1rem; border-radius:0.6rem; background:hsl(280,75%,55%); color:white; border:none; cursor:pointer;">OK</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(statusOverlay);
 
-        card.append(img, name);
-        container.appendChild(card);
+        /* ---------------------------
+           State & persistence
+           --------------------------- */
+        function loadMergedBalls() {
+          try {
+            const raw = localStorage.getItem("merged");
+            return raw ? JSON.parse(raw) : [];
+          } catch {
+            return [];
+          }
+        }
+        function saveMergedBalls(arr) {
+          localStorage.setItem("merged", JSON.stringify(arr));
+        }
+        let mergedBalls = loadMergedBalls();
 
-        // Unified stats renderer
-        card.addEventListener("click", () => {
-          infoTitle.textContent = ball.name;
+        // registry of ball objects by name for quick lookup
+        const ballRegistry = {};
 
+        // merge selection (two drops)
+        let dropA = null;
+        let dropB = null;
+
+        /* ---------------------------
+           Utility: unique name if collision
+           --------------------------- */
+        function uniqueName(name) {
+          let base = name;
+          let i = 1;
+          const exists = () =>
+            Object.keys(ballRegistry).some(
+              (n) => n.toLowerCase() === name.toLowerCase()
+            );
+          while (exists()) {
+            i += 1;
+            name = `${base}_v${i}`;
+          }
+          return name;
+        }
+
+        /* ---------------------------
+           Show / hide modals (infoOverlay used for viewing)
+           --------------------------- */
+        function showInfoModal(ballName) {
+          const ball = ballRegistry[ballName];
+          infoTitle.textContent = ball ? ball.name : ballName || "Unknown";
+          if (!ball) {
+            infoText.innerHTML = "<p>No data available.</p>";
+            infoOverlay.style.display = "flex";
+            return;
+          }
+
+          // build advanced stats HTML (same format as earlier)
           let statsHTML = "";
           if (ball.stats) {
             const s = ball.stats;
-
             const baseStats = [];
             if (s.damage !== undefined) baseStats.push(`Damage: ${s.damage}`);
             if (s.knockback !== undefined)
@@ -355,12 +326,11 @@
 
             const effectGroups = [];
             if (s.poison) {
+              const durationText = s.duration
+                ? ` • Duration: ${s.duration}`
+                : "";
               effectGroups.push(
-                `<div class="effect-group">
-                  <strong>Poison:</strong>${
-                    s.duration ? ` • Duration: ${s.duration}` : ""
-                  }
-                </div>`
+                `<div class="effect-group"><strong>Poison:</strong>${durationText}</div>`
               );
             }
 
@@ -400,14 +370,789 @@
           }
 
           infoText.innerHTML = `
-            <p>${ball.description}</p>
-            <p><strong>Ability:</strong> ${ball.ability}</p>
+            <div style="display:flex; gap:0.8rem; align-items:center; justify-content:center; margin-bottom:0.6rem;">
+              <div class="ball-gradient" style="width:64px;height:64px;border-radius:50%; background:${
+                ball && ball.gradient
+                  ? ball.gradient
+                  : "radial-gradient(circle at 30% 30%, #ddd,#999)"
+              }"></div>
+              <div style="text-align:left;">
+                <p style="margin:0;"><strong>${ball.name}</strong></p>
+                <p style="margin:0.2rem 0 0;"><small>${
+                  ball.ability || ""
+                }</small></p>
+              </div>
+            </div>
+            <p>${ball.description || ""}</p>
+            <p><strong>Ability:</strong> ${ball.ability || "None"}</p>
             ${statsHTML}
           `;
+          infoOverlay.style.display = "flex";
+        }
 
-          overlay.style.display = "flex";
+        closeOverlay.addEventListener(
+          "click",
+          () => (infoOverlay.style.display = "none")
+        );
+        infoOverlay.addEventListener("click", (e) => {
+          if (e.target === infoOverlay) infoOverlay.style.display = "none";
         });
-      }
+
+        /* ---------------------------
+           Show / hide merge confirm modal
+           --------------------------- */
+        const mergeBody = mergeOverlay.querySelector("#merge-body");
+        const mergeTitle = mergeOverlay.querySelector("#merge-title");
+        const mergeCancel = mergeOverlay.querySelector("#merge-cancel");
+        const mergeConfirm = mergeOverlay.querySelector("#merge-confirm");
+        const mergeStatus = mergeOverlay.querySelector("#merge-status");
+
+        function showMergeModal(aName, bName) {
+          const a = ballRegistry[aName];
+          const b = ballRegistry[bName];
+          mergeTitle.textContent =
+            "Merge: " + (aName || "") + " + " + (bName || "");
+          mergeBody.innerHTML = `
+            <div style="display:flex; gap:0.6rem; align-items:center; justify-content:space-between;">
+              <div style="flex:1; text-align:center;">
+                <div class="ball-gradient" style="width:64px;height:64px;border-radius:50%; background:${
+                  a.gradient || ""
+                }"></div>
+                <div style="margin-top:0.4rem;"><strong>${a.name}</strong></div>
+              </div>
+              <div style="flex:1; text-align:center;">
+                <div class="ball-gradient" style="width:64px;height:64px;border-radius:50%; background:${
+                  b.gradient || ""
+                }"></div>
+                <div style="margin-top:0.4rem;"><strong>${b.name}</strong></div>
+              </div>
+            </div>
+            <div style="margin-top:0.8rem; font-size:0.95rem;">
+              <p style="margin:0;"><strong>Preview:</strong> The model will produce a new ball JSON combining attributes from both inputs. Click Merge to proceed.</p>
+            </div>
+          `;
+          mergeStatus.style.display = "none";
+          mergeOverlay.style.display = "flex";
+        }
+
+        function hideMergeModal() {
+          mergeOverlay.style.display = "none";
+        }
+
+        mergeCancel.addEventListener("click", () => {
+          // cancel and reset
+          dropA = null;
+          dropB = null;
+          updateMergeZoneHint();
+          hideMergeModal();
+        });
+
+        /* ---------------------------
+           Status modal
+           --------------------------- */
+        const statusTitle = statusOverlay.querySelector("#status-title");
+        const statusBody = statusOverlay.querySelector("#status-body");
+        const statusOk = statusOverlay.querySelector("#status-ok");
+        statusOk.addEventListener(
+          "click",
+          () => (statusOverlay.style.display = "none")
+        );
+
+        function showStatus(title, htmlContent) {
+          statusTitle.textContent = title;
+          statusBody.innerHTML = htmlContent;
+          statusOverlay.style.display = "flex";
+        }
+
+        /* ---------------------------
+           Drag/drop for cards & merge zone
+           --------------------------- */
+        function addBallToLibrary(ball) {
+          // store in registry (overwrite or add)
+          ballRegistry[ball.name] = ball;
+
+          // create card (avoid creating duplicate DOM nodes if already present)
+          // We'll check if an element with data-ballname exists.
+          if (
+            container.querySelector(
+              `[data-ballname="${CSS.escape(ball.name)}"]`
+            )
+          ) {
+            // Update gradient and name display in case merged ball updated existing
+            const existing = container.querySelector(
+              `[data-ballname="${CSS.escape(ball.name)}"]`
+            );
+            const g = existing.querySelector(".ball-gradient");
+            if (g) g.style.background = ball.gradient || g.style.background;
+            const h2 = existing.querySelector("h2");
+            if (h2) h2.textContent = ball.name;
+            return;
+          }
+
+          const card = document.createElement("div");
+          card.className = "ball-card";
+          card.draggable = true;
+          card.dataset.ballname = ball.name;
+
+          const img = document.createElement("div");
+          img.className = "ball-gradient";
+          img.style.background =
+            ball.gradient || "linear-gradient(135deg,#888,#444)";
+
+          const name = document.createElement("h2");
+          name.textContent = ball.name;
+
+          card.append(img, name);
+
+          container.appendChild(card);
+
+          // dragstart
+          card.addEventListener("dragstart", (e) => {
+            e.dataTransfer.setData("ballname", ball.name);
+            e.dataTransfer.effectAllowed = "move";
+          });
+
+          // click — always opens info modal (we use two-drop merging, so clicks never select for merge)
+          card.addEventListener("click", (e) => {
+            showInfoModal(ball.name);
+          });
+        }
+
+        /* Merge zone interactions (accept two drops in sequence) */
+        function updateMergeZoneHint() {
+          if (!mergeZone) return;
+          if (!dropA && !dropB) {
+            mergeZone.textContent =
+              "Drag two balls here to merge (drop one, then another).";
+          } else if (dropA && !dropB) {
+            mergeZone.textContent = `First: ${dropA} — drop a second ball to continue (or click here to cancel).`;
+          } else if (dropA && dropB) {
+            mergeZone.textContent = `Ready to merge: ${dropA} + ${dropB} — confirm below.`;
+          }
+        }
+
+        if (mergeZone) {
+          mergeZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          });
+
+          mergeZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const name = e.dataTransfer.getData("ballname");
+            if (!name) return;
+
+            // If both empty, set dropA. If one set, set dropB (unless it's the same ball).
+            if (!dropA) {
+              dropA = name;
+              updateMergeZoneHint();
+            } else if (!dropB) {
+              if (name === dropA) {
+                // show status that second must be different
+                showStatus(
+                  "Merge Error",
+                  "<p>You must drop two different balls.</p>"
+                );
+                return;
+              }
+              dropB = name;
+              updateMergeZoneHint();
+              // show merge confirm modal
+              showMergeModal(dropA, dropB);
+            } else {
+              // both already set — replace dropA with new drop
+              dropA = name;
+              dropB = null;
+              updateMergeZoneHint();
+            }
+          });
+
+          // allow click to cancel selection
+          mergeZone.addEventListener("click", () => {
+            if (dropA || dropB) {
+              dropA = null;
+              dropB = null;
+              updateMergeZoneHint();
+            }
+          });
+        }
+
+        /* ---------------------------
+           AI merge request (gives full access to jsonData examples)
+           --------------------------- */
+
+        // Generate a cryptographically strong random seed
+        function generateSeed() {
+          return crypto.getRandomValues(new Uint32Array(1))[0];
+        }
+
+        let seed = generateSeed();
+
+        const API_URL =
+          "https://hearing-shoulder-campbell-applies.trycloudflare.com/v1/chat/completions"; // keep as provided
+        const MODEL_NAME = "YourModelNameHere"; // replace with your model id if needed
+
+        // ---------- Replace the existing aiMergeBall function with this ----------
+
+        async function aiMergeBall(aName, bName) {
+          const a = ballRegistry[aName];
+          const b = ballRegistry[bName];
+          if (!a || !b) {
+            showStatus("Merge Error", "<p>Missing ball data for merge.</p>");
+            return null;
+          }
+
+          // System prompt (keeps your stricter schema requirements)
+          const systemPrompt = `
+You are a JSON-only generator for this game.
+You will receive two ball objects (A and B).
+Return ONLY a single JSON object representing the fused ball.
+
+REQUIREMENTS:
+- ALWAYS generate: name, description, ability, gradient, stats (damage, burn, freeze, shock, poison, slow, heal, knockback, pierce, areaEffect, duration).
+- Output only one JSON object. No commentary.
+- Generate a creative name, that logically would be the name for the fused ball.
+- Generate a brand new ability from the fused balls, do not just add the two abilites together.
+- Create brand new options for everything, not just adding the two balls together, create a brand new ball with different, new stats.
+- Do not generate a name more than 15 letters.
+
+If any field is missing, output what you can; the caller will fill sensible defaults.
+  `;
+
+          const userPrompt = {
+            instruction:
+              "Create fused ball JSON from these two inputs. Use the example base balls for format.",
+            ballA: a,
+            ballB: b,
+            examples: jsonData,
+          };
+
+          const payload = {
+            model: MODEL_NAME,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: JSON.stringify(userPrompt) },
+            ],
+            seed: seed,
+            temperature: 0.75,
+            max_tokens: 600,
+          };
+
+          // show merging status
+          mergeStatus.style.display = "block";
+          mergeStatus.textContent = "Merging...";
+
+          try {
+            const r = await fetch(API_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer EMPTY",
+              },
+              body: JSON.stringify(payload),
+            });
+            const txt = await r.text();
+
+            // Robust JSON extraction: handles ```json {...} ```, fences, and extra text
+            const fusedRaw = parseJSONFromText(txt);
+            if (!fusedRaw) {
+              mergeStatus.textContent = "";
+              showStatus(
+                "Merge Error",
+                "<p>The model did not return valid JSON.</p><pre style='white-space:pre-wrap;margin-top:0.6rem;'>" +
+                  escapeHtml(txt.substring(0, 1000)) +
+                  "</pre>"
+              );
+              return null;
+            }
+
+            // Normalize / sanitize the fused object and provide fallbacks.
+            const fused = normalizeFusedObject(fusedRaw, a, b);
+
+            // Ensure a name
+            // ------------------ creative name fallback ------------------
+            function capitalize(s) {
+              return s
+                ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+                : "";
+            }
+
+            function pickFragment(str) {
+              if (!str) return "";
+              // remove non-letters, split by capitalization or vowels so we prefer meaningful fragments
+              const clean = String(str).replace(/[^A-Za-z]/g, "");
+              if (clean.length <= 4) return clean;
+              // prefer the first 3-4 letters or the first meaningful chunk
+              return clean.slice(0, Math.min(4, Math.ceil(clean.length / 2)));
+            }
+
+            function generateCreativeName(aObj, bObj, fusedObj) {
+              // attempt to use ability words if present
+              const abilA = (aObj.ability || "").match(/[A-Za-z]{2,}/g) || [];
+              const abilB = (bObj.ability || "").match(/[A-Za-z]{2,}/g) || [];
+              const abil = (abilA.concat(abilB).filter(Boolean)[0] || "").slice(
+                0,
+                3
+              );
+
+              const left = pickFragment(aObj.name || aObj.id || "Orb");
+              const right = pickFragment(bObj.name || bObj.id || "Flux");
+
+              const suffixes = [
+                "ion",
+                "burst",
+                "core",
+                "flare",
+                "nova",
+                "shade",
+                "crest",
+                "rift",
+                "vein",
+                "aegis",
+                "pulse",
+              ];
+              const suf =
+                suffixes[
+                  Math.abs(hashString(left + right + (abil || ""))) %
+                    suffixes.length
+                ];
+
+              // mix pattern variants and ensure not just parent names repeated
+              let cand = (
+                capitalize(left) +
+                capitalize(right.slice(0, 2)) +
+                (abil ? capitalize(abil) : "") +
+                suf
+              ).replace(/[^A-Za-z]/g, "");
+              if (cand.length < 4) cand = capitalize(left) + suf;
+              // final safety trim
+              return cand;
+            }
+
+            function hashString(s) {
+              // small deterministic hash for variety
+              let h = 0;
+              for (let i = 0; i < s.length; i++) {
+                h = (h << 5) - h + s.charCodeAt(i);
+                h |= 0;
+              }
+              return h;
+            }
+
+            const nameLower = fused.name
+              ? String(fused.name).toLowerCase()
+              : "";
+            const aLower = String(a.name || "").toLowerCase();
+            const bLower = String(b.name || "").toLowerCase();
+
+            // If name is missing, or obviously just a concatenation / contains 'fusion' / contains parent's names / is a version suffix — replace it
+            if (
+              !fused.name ||
+              fused.name.toString().trim() === "" ||
+              nameLower.includes("fusion") ||
+              nameLower.includes(aLower) ||
+              nameLower.includes(bLower) ||
+              /_v\d+$/.test(fused.name)
+            ) {
+              fused.name = generateCreativeName(a, b, fused);
+            }
+
+            // If name still collides with registry, make unique
+            if (ballRegistry[fused.name]) {
+              fused.name = uniqueName(fused.name);
+            }
+
+            mergeStatus.textContent = "Merge complete.";
+            return fused;
+          } catch (err) {
+            mergeStatus.textContent = "";
+            showStatus(
+              "Merge Error",
+              `<p>Network or parsing error: ${escapeHtml(
+                err && err.message ? err.message : String(err)
+              )}</p>`
+            );
+            return null;
+          }
+        }
+
+        /* --------------------------
+   Helper: parse JSON robustly from model text
+   -------------------------- */
+        function parseJSONFromText(txt) {
+          if (!txt || typeof txt !== "string") return null;
+
+          // STEP 1: Try to parse entire response as chat.completion
+          try {
+            const outer = JSON.parse(txt);
+
+            // Chat completion JSON structure
+            const inner = outer?.choices?.[0]?.message?.content;
+            if (inner && typeof inner === "string") {
+              // Try parsing the inner JSON content
+              try {
+                return JSON.parse(inner);
+              } catch (e) {
+                // Continue to other strategies below
+              }
+            }
+          } catch (e) {
+            // Not a full JSON object — continue to next steps
+          }
+
+          // STEP 2: Look for fenced code blocks (```json ... ```)
+          let m = txt.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+          if (m && m[1]) {
+            try {
+              return JSON.parse(m[1]);
+            } catch (e) {}
+          }
+
+          // STEP 3: Try grabbing the largest {...} block
+          const braceMatches = [];
+          let re = /\{[\s\S]*\}/g;
+          while ((m = re.exec(txt)) !== null) {
+            braceMatches.push(m[0]);
+          }
+
+          braceMatches.sort((a, b) => b.length - a.length);
+
+          for (const candidate of braceMatches) {
+            try {
+              return JSON.parse(candidate);
+            } catch (e) {}
+          }
+
+          // STEP 4: Last-ditch attempt — single quote replacement
+          try {
+            const converted = txt.trim().replace(/'/g, '"');
+            return JSON.parse(converted);
+          } catch (e) {
+            return null;
+          }
+        }
+
+        /* --------------------------
+   Helper: normalize fused object
+   Ensures presence and sensible types for fields
+   -------------------------- */
+        function normalizeFusedObject(fused, a, b) {
+          const out = Object.assign({}, fused);
+
+          // NAME: trim
+          if (out.name) out.name = String(out.name).trim();
+
+          // DESCRIPTION
+          if (!out.description || String(out.description).trim() === "") {
+            const ad = a.description || "";
+            const bd = b.description || "";
+            out.description = `${mergeShortDescription(ad, bd)}`;
+          }
+
+          // ABILITY
+          if (!out.ability || String(out.ability).trim() === "") {
+            // try to combine parents' abilities or invent one
+            const abilityCandidates = [];
+            if (a.ability) abilityCandidates.push(a.ability);
+            if (b.ability) abilityCandidates.push(b.ability);
+            out.ability = abilityCandidates.length
+              ? `${abilityCandidates[0]}${
+                  abilityCandidates[1] ? "-" + abilityCandidates[1] : ""
+                }`
+              : `${simpleNameFromNames(a.name, b.name)}Burst`;
+          }
+
+          // GRADIENT: keep if string else create from parents
+          if (
+            !out.gradient ||
+            typeof out.gradient !== "string" ||
+            out.gradient.trim() === ""
+          ) {
+            out.gradient = generateGradientFromParents(
+              a.gradient || "",
+              b.gradient || "",
+              a.name,
+              b.name
+            );
+          }
+
+          // STATS: ensure object and all keys present with sensible defaults
+          const defaultStats = {
+            damage: 10,
+            burn: false,
+            freeze: false,
+            shock: false,
+            poison: false,
+            slow: false,
+            heal: false,
+            knockback: 0,
+            pierce: 0,
+            areaEffect: false,
+            duration: 2,
+          };
+
+          out.stats =
+            out.stats && typeof out.stats === "object"
+              ? Object.assign({}, out.stats)
+              : {};
+
+          // If missing a lot, derive from parents
+          const parentStatsA =
+            a.stats && typeof a.stats === "object" ? a.stats : defaultStats;
+          const parentStatsB =
+            b.stats && typeof b.stats === "object" ? b.stats : defaultStats;
+
+          // Numeric fields: damage, knockback, pierce, duration
+          out.stats.damage = safeNumber(
+            out.stats.damage,
+            Math.round(
+              ((parentStatsA.damage || 0) + (parentStatsB.damage || 0)) / 2
+            )
+          );
+          out.stats.knockback = safeNumber(
+            out.stats.knockback,
+            Math.max(parentStatsA.knockback || 0, parentStatsB.knockback || 0)
+          );
+          out.stats.pierce = safeNumber(
+            out.stats.pierce,
+            Math.max(parentStatsA.pierce || 0, parentStatsB.pierce || 0)
+          );
+          out.stats.duration = safeNumber(
+            out.stats.duration,
+            Math.max(parentStatsA.duration || 1, parentStatsB.duration || 1)
+          );
+
+          // Boolean effects: OR of parents or provided
+          out.stats.burn = coerceBool(
+            out.stats.burn,
+            parentStatsA.burn || parentStatsB.burn
+          );
+          out.stats.freeze = coerceBool(
+            out.stats.freeze,
+            parentStatsA.freeze || parentStatsB.freeze
+          );
+          out.stats.shock = coerceBool(
+            out.stats.shock,
+            parentStatsA.shock || parentStatsB.shock
+          );
+          out.stats.poison = coerceBool(
+            out.stats.poison,
+            parentStatsA.poison || parentStatsB.poison
+          );
+          out.stats.slow = coerceBool(
+            out.stats.slow,
+            parentStatsA.slow || parentStatsB.slow
+          );
+          out.stats.heal = coerceBool(
+            out.stats.heal,
+            parentStatsA.heal || parentStatsB.heal
+          );
+          out.stats.areaEffect = coerceBool(
+            out.stats.areaEffect,
+            parentStatsA.areaEffect || parentStatsB.areaEffect
+          );
+
+          // final sweep: ensure all keys present
+          for (const k of Object.keys(defaultStats)) {
+            if (out.stats[k] === undefined) out.stats[k] = defaultStats[k];
+          }
+
+          return out;
+        }
+
+        /* --------------------------
+   Small helpers used above
+   -------------------------- */
+        function safeNumber(val, fallback) {
+          if (val === undefined || val === null || Number.isNaN(Number(val)))
+            return fallback;
+          return Math.round(Number(val));
+        }
+        function coerceBool(val, fallback = false) {
+          if (typeof val === "boolean") return val;
+          if (typeof val === "string") {
+            const s = val.toLowerCase().trim();
+            if (s === "true") return true;
+            if (s === "false") return false;
+          }
+          return Boolean(fallback);
+        }
+
+        function mergeShortDescription(ad, bd) {
+          // simple heuristic: pick important phrases
+          const shortA = String(ad || "").split(/[.]/)[0] || "";
+          const shortB = String(bd || "").split(/[.]/)[0] || "";
+          if (shortA && shortB) return `${shortA} fused with ${shortB}`.trim();
+          return (shortA || shortB || "A unique fused orb").trim();
+        }
+
+        function simpleNameFromNames(aName, bName) {
+          // produce a short evocative name base
+          const clean = (s) => String(s || "").replace(/[^A-Za-z]/g, "");
+          const left = clean(aName).slice(0, 6);
+          const right = clean(bName).slice(0, 6);
+          return (
+            (left + right).replace(/([A-Z])/g, "$1").replace(/\s+/g, "") ||
+            "Fusion"
+          );
+        }
+
+        /* --------------------------
+   Gradient generation
+   Try to extract HSL color(s) from parents' gradient strings.
+   If not possible, deterministically derive hues from names.
+   -------------------------- */
+        function generateGradientFromParents(gA, gB, nameA, nameB) {
+          // Try to extract first hsl(...) hue from parents
+          const hA = extractFirstHslHue(gA);
+          const hB = extractFirstHslHue(gB);
+
+          let hue1 = hA != null ? hA : deterministicHue(nameA);
+          let hue2 = hB != null ? hB : deterministicHue(nameB);
+
+          // Slight adjustment to avoid identical hues
+          if (hue1 === hue2) hue2 = (hue2 + 40) % 360;
+
+          // Create a pleasing radial gradient
+          return `radial-gradient(circle at 30% 30%, hsl(${hue1}, 70%, 80%), hsl(${hue2}, 60%, 45%))`;
+        }
+        function extractFirstHslHue(str) {
+          if (!str || typeof str !== "string") return null;
+          const m = str.match(/hsl\(\s*([0-9]+(?:\.[0-9]+)?)\s*,/i);
+          if (m) return Number(m[1]) % 360;
+          return null;
+        }
+        function deterministicHue(seed) {
+          if (!seed) seed = Math.random().toString();
+          let n = 0;
+          for (let i = 0; i < seed.length; i++)
+            n = (n * 31 + seed.charCodeAt(i)) % 360;
+          // make sure not zero
+          return (n + 20) % 360;
+        }
+
+        /* ---------------------------
+           Hook merge-confirm button
+           --------------------------- */
+        mergeConfirm.addEventListener("click", async () => {
+          if (!dropA || !dropB) {
+            showStatus(
+              "Merge Error",
+              "<p>Two balls must be dropped before merging.</p>"
+            );
+            return;
+          }
+          mergeStatus.style.display = "block";
+          mergeStatus.textContent = "Merging...";
+
+          const fused = await aiMergeBall(dropA, dropB);
+
+          // Hide merge modal regardless; present result in status/modal
+          hideMergeModal();
+
+          if (!fused) {
+            // merge failed — reset
+            dropA = null;
+            dropB = null;
+            updateMergeZoneHint();
+            return;
+          }
+
+          // persist fused
+          fused.__mergeKey = [dropA, dropB].sort().join("__");
+          mergedBalls.push(fused);
+          saveMergedBalls(mergedBalls);
+
+          // add to library and show info modal of new ball
+          addBallToLibrary(fused);
+
+          // reset drops
+          dropA = null;
+          dropB = null;
+          updateMergeZoneHint();
+
+          // show the created ball in the advanced modal
+          showInfoModal(fused.name);
+        });
+
+        /* ---------------------------
+           Initialization: render base + merged
+           --------------------------- */
+        function init() {
+          // Add base balls
+          jsonData.forEach((b) => {
+            // ensure registry doesn't accidentally contain same-name
+            if (!ballRegistry[b.name]) addBallToLibrary(b);
+            else
+              ballRegistry[b.name] = Object.assign({}, ballRegistry[b.name], b);
+          });
+
+          // Add merged from storage
+          mergedBalls.forEach((b) => {
+            // ensure unique name if clash
+            if (ballRegistry[b.name]) {
+              b.name = uniqueName(b.name);
+            }
+            addBallToLibrary(b);
+          });
+
+          updateMergeZoneHint();
+        }
+
+        /* ---------------------------
+           Helpers
+           --------------------------- */
+        function escapeHtml(s) {
+          if (!s) return "";
+          return s.replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              }[c])
+          );
+        }
+
+        /* ---------------------------
+           Start
+           --------------------------- */
+        window.addEventListener("DOMContentLoaded", init);
+        /* ==========================================================
+   RESET TO STARTER BALLS
+   Clears all merged balls and reloads only jsonData
+   ========================================================== */
+        const resetBtn = document.getElementById("reset-balls");
+
+        resetBtn.addEventListener("click", () => {
+          // 1. Clear merged balls from localStorage
+          localStorage.removeItem("merged");
+
+          // 2. Reset internal tracking
+          mergedBalls = [];
+          for (const key in ballRegistry) delete ballRegistry[key];
+
+          // 3. Clear DOM
+          container.innerHTML = "";
+
+          // 4. Reload starter balls (jsonData)
+          jsonData.forEach((b) => addBallToLibrary(b));
+
+          // 5. Reset merge zone state
+          dropA = null;
+          dropB = null;
+          updateMergeZoneHint();
+
+          // 6. Confirm to user
+          showStatus(
+            "Reset Complete",
+            "<p>Your ball library has been restored to the original starter balls.</p>"
+          );
+        });
+      })();
     </script>
   </body>
 </html>

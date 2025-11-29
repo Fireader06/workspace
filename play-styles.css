@@ -10,6 +10,7 @@ body {
   background: rgb(250, 250, 250);
   color: #333;
   cursor: none;
+  margin-bottom: 50px;
 }
 
 /* News Ticker */

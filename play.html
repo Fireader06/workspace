@@ -6,6 +6,40 @@
     <title>Play</title>
     <link rel="stylesheet" href="play-styles.css" />
   </head>
+  <style>
+    #bottomBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+
+      background: rgb(226, 226, 226);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #bottomBar button {
+      background: hsl(280, 75%, 50%);
+      color: rgb(255, 255, 255);
+      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #bottomBar button:hover {
+      background: hsl(280, 75%, 50%);
+    }
+  </style>
+  <div id="bottomBar">
+    <button onclick="location.href='index.html'">Back to Home</button>
+  </div>
   <body>
     <!-- News Ticker -->
     <div class="news-ticker">
@@ -19,11 +53,78 @@
         Get ready to mix, craft, and explore new combinations!
       </p>
     </header>
-
     <!-- Main Game Section -->
     <main>
       <div class="game-container">
         <canvas id="gameCanvas"></canvas>
+      </div>
+
+      <div
+        id="sttModal"
+        style="
+          display: none;
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.75);
+          z-index: 999999;
+          color: white;
+          font-family: Fredoka, sans-serif;
+          text-align: center;
+        "
+      >
+        <div
+          style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #222;
+            padding: 30px;
+            border-radius: 16px;
+            width: 420px;
+          "
+        >
+          <h2 id="sttTitle">Say the phonics</h2>
+          <p id="sttStatus">Press SPACE to begin recording...</p>
+
+          <button
+            id="sttSubmit"
+            style="
+              margin-top: 20px;
+              padding: 10px 20px;
+              font-size: 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            Submit
+          </button>
+        </div>
+        <div
+          id="orb-menu"
+          style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+            z-index: 999;
+          "
+        >
+          <h2>Orb Collected!</h2>
+          <p>Choose an upgrade:</p>
+
+          <button id="level-up-btn">Level Up a Ball</button><br /><br />
+          <button id="merge-btn">Merge Two Balls</button>
+        </div>
       </div>
     </main>
 
