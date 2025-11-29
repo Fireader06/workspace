@@ -34,6 +34,21 @@
         ></textarea>
         <button id="send-to-ai">Generate Ball</button>
         <p id="status"></p>
+        <div
+          id="response-log"
+          style="
+            margin-top: 15px;
+            padding: 10px;
+            background: #111;
+            color: #0f0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #333;
+          "
+        ></div>
       </div>
     </main>
 
@@ -149,12 +164,18 @@
     </script>
     <script>
       const API_URL =
-        "https://grove-list-acc-newman.trycloudflare.com/v1/chat/completions";
+        "https://reporters-guarantee-craft-cancel.trycloudflare.com/v1/chat/completions";
       // 👆 must include /v1/chat/completions
 
       const createBtn = document.getElementById("send-to-ai");
       const promptBox = document.getElementById("ball-prompt");
       const statusBox = document.getElementById("status");
+
+      function logResponse(text) {
+        const box = document.getElementById("response-log");
+        box.textContent += text + "\n\n-----------------------\n\n";
+        box.scrollTop = box.scrollHeight;
+      }
 
       async function createBallWithAI() {
         const userPrompt = promptBox.value.trim();
@@ -170,6 +191,8 @@
     You are an assistant that designs game balls for a fantasy ball library.
     Return your answer in **pure JSON only**.
     Where it says "number" put actual numbers, not words.
+    There is NOTHING in this game excpet balls, so don't try to add anything extra.
+    Do not put any extra efects, all efects are put down as a boolean in the example.
     Each ball has:
     {
       "name": "string",
@@ -178,14 +201,59 @@
       "gradient": "linear-gradient(...)",
       "stats": {
         "damage": number,
+        "burn": boolean,
+        "freeze": boolean,
+        "shock": boolean,
+        "poison": boolean,
+        "slow": boolean,
+        "heal": boolean,
         "knockback": number,
         "pierce": number,
         "areaEffect": boolean,
-        "slow": boolean,
-        "burn": boolean,
-        "freeze": boolean,
-        "heal": boolean
+        "duration": number
       }
+      Here is the example starter ball from the game, 
+      {
+    name: "StarterBall",
+    description:
+      "A simple, balanced orb that serves as the foundation for all others.",
+    ability: "Bounce",
+    gradient:
+      "radial-gradient(circle at 30% 30%, hsl(220, 20%, 85%), hsl(220, 15%, 65%))",
+    stats: {
+      damage: 25,
+      burn: false,
+      freeze: false,
+      shock: false,
+      poison: false,
+      slow: false,
+      heal: false,
+      knockback: 5,
+      pierce: 1,
+      areaEffect: false,
+      duration: 2,
+    }
+    another example,
+    {
+    name: "AetherBall",
+    description:
+      "A radiant orb infused with celestial energy that restores and empowers allies.",
+    ability: "Renew",
+    gradient:
+      "radial-gradient(circle at 30% 30%, hsl(280, 70%, 80%), hsl(320, 60%, 55%))",
+    stats: {
+      damage: 20,
+      burn: false,
+      freeze: false,
+      shock: false,
+      poison: false,
+      slow: false,
+      heal: true,
+      knockback: 0,
+      pierce: 0,
+      areaEffect: true,
+      duration: 10,
+    }
     }`;
 
         const payload = {
@@ -209,7 +277,7 @@
           });
 
           const text = await response.text();
-          console.log("[RAW RESPONSE]", text);
+          logResponse("[RAW RESPONSE]\n" + text);
 
           let data;
           try {
@@ -222,7 +290,7 @@
           if (!message)
             throw new Error("No message content found in response!");
 
-          console.log("[MODEL MESSAGE]", message);
+          logResponse("[MODEL MESSAGE]\n" + message);
 
           let ball;
           try {
@@ -246,7 +314,7 @@
           statusBox.innerHTML = "✅ Ball added successfully!";
           promptBox.value = "";
         } catch (err) {
-          console.error("[BALL-ERROR]", err);
+          logResponse("[BALL-ERROR]\n" + err.message);
           statusBox.innerHTML = `❌ Error: ${err.message}`;
         } finally {
           createBtn.disabled = false;
@@ -271,12 +339,72 @@
         card.append(img, name);
         container.appendChild(card);
 
+        // Unified stats renderer
         card.addEventListener("click", () => {
           infoTitle.textContent = ball.name;
+
+          let statsHTML = "";
+          if (ball.stats) {
+            const s = ball.stats;
+
+            const baseStats = [];
+            if (s.damage !== undefined) baseStats.push(`Damage: ${s.damage}`);
+            if (s.knockback !== undefined)
+              baseStats.push(`Knockback: ${s.knockback}`);
+            if (s.pierce !== undefined) baseStats.push(`Pierce: ${s.pierce}`);
+
+            const effectGroups = [];
+            if (s.poison) {
+              effectGroups.push(
+                `<div class="effect-group">
+                  <strong>Poison:</strong>${
+                    s.duration ? ` • Duration: ${s.duration}` : ""
+                  }
+                </div>`
+              );
+            }
+
+            const miscEffects = [];
+            if (s.areaEffect) miscEffects.push("Area Effect");
+            if (s.slow) miscEffects.push("Slow");
+            if (s.heal) miscEffects.push("Heal");
+            if (s.burn) miscEffects.push("Burn");
+            if (s.freeze) miscEffects.push("Freeze");
+            if (s.shock) miscEffects.push("Shock");
+
+            statsHTML = `
+              <div class="stats-block">
+                ${
+                  baseStats.length
+                    ? `<p><strong>Stats:</strong><br>${baseStats.join(
+                        "<br>"
+                      )}</p>`
+                    : ""
+                }
+                ${
+                  effectGroups.length
+                    ? `<div class="effects-section">${effectGroups.join(
+                        ""
+                      )}</div>`
+                    : ""
+                }
+                ${
+                  miscEffects.length
+                    ? `<div class="misc-section"><strong>Other Effects:</strong><ul>${miscEffects
+                        .map((e) => `<li>${e}</li>`)
+                        .join("")}</ul></div>`
+                    : ""
+                }
+              </div>
+            `;
+          }
+
           infoText.innerHTML = `
             <p>${ball.description}</p>
             <p><strong>Ability:</strong> ${ball.ability}</p>
+            ${statsHTML}
           `;
+
           overlay.style.display = "flex";
         });
       }

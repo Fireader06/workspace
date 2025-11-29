@@ -9,6 +9,20 @@ function resizeCanvas() {
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
+function updateMouseInsideState() {
+  const rect = canvas.getBoundingClientRect();
+  mouseInsideCanvas =
+    mouseClientX >= rect.left &&
+    mouseClientX <= rect.right &&
+    mouseClientY >= rect.top &&
+    mouseClientY <= rect.bottom;
+
+  if (mouseInsideCanvas) {
+    mouseCanvasX = mouseClientX - rect.left;
+    mouseCanvasY = mouseClientY - rect.top;
+  }
+}
+
 // =================== UTILITIES ===================
 let seed = 12345;
 function seededRandom() {
@@ -19,6 +33,130 @@ function seededRandom() {
 // For the level-up selection system
 let levelUpChoices = [];
 
+function lineIntersectsRect(x1, y1, x2, y2, rect) {
+  // Get the min/max for X
+  const left = rect.x;
+  const right = rect.x + rect.width;
+
+  // Get the min/max for Y
+  const top = rect.y;
+  const bottom = rect.y + rect.height;
+
+  // Line bounding box check first
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+
+  if (maxX < left || minX > right) return false;
+  if (maxY < top || minY > bottom) return false;
+
+  // Parametric line intersection
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  let t0 = 0;
+  let t1 = 1;
+
+  const clip = (p, q) => {
+    if (p === 0) return q >= 0;
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else if (p > 0) {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+    return true;
+  };
+
+  if (
+    clip(-dx, x1 - left) &&
+    clip(dx, right - x1) &&
+    clip(-dy, y1 - top) &&
+    clip(dy, bottom - y1)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function onAssignBallClick() {
+  console.log("Assign Ball button clicked!");
+
+  // Example action:
+  // Cycle selected ball
+  currentBallIndex = (currentBallIndex + 1) % inventory.length;
+  selectedBall = inventory[currentBallIndex];
+
+  // Or open a custom menu — whatever you want.
+}
+
+const phonicsList = ["ough", "ei", "wr", "ph", "kn", "tion", "dge", "igh"];
+
+function openPhonicsMenu() {
+  if (phonicsMenu) return;
+
+  phonicsMenuOpen = true;
+  gamePaused = true; // <<< use your real pause system
+
+  phonicsMenu = document.createElement("select");
+  phonicsMenu.style.position = "fixed";
+  phonicsMenu.style.zIndex = "99999";
+  phonicsMenu.style.left = "50%";
+  phonicsMenu.style.top = "50%";
+  phonicsMenu.style.transform = "translate(-50%, -50%)";
+  phonicsMenu.style.fontSize = "20px";
+  phonicsMenu.style.padding = "10px";
+  phonicsMenu.style.borderRadius = "6px";
+
+  phonicsList.forEach((p) => {
+    const op = document.createElement("option");
+    op.value = p;
+    op.textContent = p.toUpperCase();
+    phonicsMenu.appendChild(op);
+  });
+
+  document.body.appendChild(phonicsMenu);
+
+  phonicsMenu.onchange = () => {
+    selectedBall.phonics = phonicsMenu.value;
+    closePhonicsMenu();
+  };
+}
+
+function closePhonicsMenuClick() {
+  closePhonicsMenu();
+  window.removeEventListener("click", closePhonicsMenuClick);
+}
+
+function closePhonicsMenu() {
+  if (phonicsMenu) {
+    phonicsMenu.remove();
+    phonicsMenu = null;
+  }
+
+  // restore normal gameplay only if dropdown caused the pause
+  if (phonicsMenuOpen) {
+    phonicsMenuOpen = false;
+    gamePaused = false;
+  }
+}
+
+function getTextColorForBall(c1) {
+  // Extract HSL numbers
+  const hsl = c1.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+  if (!hsl) return "white";
+
+  const lightness = parseInt(hsl[3]);
+
+  // If ball is bright → dark text
+  // If ball is dark → bright text
+  return lightness > 60 ? "black" : "white";
+}
+
 // =================== GAME VARIABLES ===================
 let spawnRateScale = 0.15; // 1.0 = normal speed, <1 = slower, >1 = faster
 let xpGainScale = 1.0; // scale XP gain from bricks (1 = normal, >1 = faster leveling)
@@ -26,6 +164,8 @@ let selectedBall = null; // will be set after StarterBall is defined
 let autoShootTimer = 0;
 const autoShootInterval = 1200; // milliseconds between shots
 let currentBallIndex = 0;
+let phonicsMenu = null;
+let phonicsMenuOpen = false;
 
 // =================== BALL DATA ===================
 const StarterBall = {
@@ -186,6 +326,20 @@ const brickSystem = {
 
 let dangerLineY = canvas.height * 0.725;
 window.addEventListener("resize", () => {
+  // Recalculate canvas size and boundaries
+  resizeCanvas();
+  const bounds = drawSpawnLimits();
+
+  // Clamp all existing bricks inside the updated boundaries
+  for (const b of brickSystem.list) {
+    const minX = bounds.left;
+    const maxX = bounds.right - brickSystem.width;
+
+    if (b.x < minX) b.x = minX;
+    if (b.x > maxX) b.x = maxX;
+  }
+
+  // Update danger line as well
   dangerLineY = canvas.height * 0.725;
 });
 
@@ -208,6 +362,13 @@ let levelUpModal = {
   alpha: 0,
   fadingOut: false,
 };
+
+// === ESC PAUSE MENU ===
+let escMenu = {
+  visible: true, // <-- game starts paused
+  alpha: 1,
+};
+let hardPaused = true; // separate pause from level-up pause
 
 let gamePaused = false;
 
@@ -465,6 +626,65 @@ function drawLevelUpModal() {
   ctx.restore();
 }
 
+function drawPhonicsDropdown(bounds) {
+  const x = bounds.right + 20;
+  const y = canvas.height / 2 + 190;
+  const w = 140;
+  const h = 40;
+
+  drawPhonicsDropdown.bounds = { x, y, w, h };
+
+  // box
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 8);
+  ctx.fill();
+
+  ctx.strokeStyle = "hsl(200, 60%, 65%)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // text
+  ctx.font = "bold 16px Fredoka, sans-serif";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const txt = selectedBall.phonics
+    ? selectedBall.phonics.toUpperCase()
+    : "Assign Phonics";
+
+  ctx.fillText(txt, x + w / 2, y + h / 2);
+}
+
+function drawAssignBallButton(bounds) {
+  const btnWidth = 140;
+  const btnHeight = 40;
+  const x = bounds.right + 20;
+  const y = canvas.height / 2 + 140; // under HP bar
+
+  // Store button bounds so clicking works
+  drawAssignBallButton.bounds = { x, y, w: btnWidth, h: btnHeight };
+
+  // background
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, btnWidth, btnHeight, 8);
+  ctx.fill();
+
+  // border
+  ctx.strokeStyle = "hsl(280, 70%, 65%)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // text
+  ctx.font = "bold 18px Fredoka, sans-serif";
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("Assign Ball", x + btnWidth / 2, y + btnHeight / 2);
+}
+
 // =================== COLLISION HELPER ===================
 function sweepAABB(cx, cy, vx, vy, radius, rect) {
   let txEnter, tyEnter, txExit, tyExit;
@@ -503,118 +723,209 @@ function sweepAABB(cx, cy, vx, vy, radius, rect) {
 
 // =================== BALL SYSTEM ===================
 class Ball {
-  constructor(x, y, angle, stats, gradient) {
+  constructor(x, y, angle, stats, gradient, phonics) {
     this.x = x;
     this.y = y;
     this.angle = angle;
-    this.size = 16;
+    this.size = 22; // whatever size you want
     this.speed = 7;
+
     this.vx = Math.cos(angle) * this.speed;
     this.vy = Math.sin(angle) * this.speed;
+
     this.stats = stats;
-    this.gradientCSS = gradient || "hsl(220,20%,85%),hsl(220,15%,65%)";
+    this.gradientCSS = gradient;
+    this.phonics = phonics || null; // <<< permanent for the ball
+
     this.returning = false;
     this.markedForRemoval = false;
+    this.hitCooldown = 0;
   }
 
   update() {
+    // decrement cooldown each frame
+    if (this.hitCooldown > 0) this.hitCooldown--;
+
     const bounds = drawSpawnLimits();
     const targetSpeed = 7;
     let remainingTime = 1.0;
 
-    while (remainingTime > 0) {
-      let earliestT = 1.0;
-      let hitBrick = null,
-        hitNormal = null;
+    // safety epsilon to consume tiny/zero time steps and avoid infinite loops
+    const MIN_CONSUME = 1e-4;
 
+    // amount to nudge the ball out after a collision (ensure it's outside the rect)
+    const separation = this.size / 2 + 0.5;
+
+    // don't run sweep part if we're already returning to player
+    while (remainingTime > 0 && !this.returning && !this.markedForRemoval) {
+      this.prevX = this.x;
+      this.prevY = this.y;
+
+      let earliestT = 1.0;
+      let hitBrick = null;
+      let hitNormal = null;
+
+      const stepVX = this.vx * remainingTime;
+      const stepVY = this.vy * remainingTime;
+
+      // === brick sweep collisions (skip bricks already marked for removal) ===
       for (const b of brickSystem.list) {
-        const res = sweepAABB(
-          this.x,
-          this.y,
-          this.vx,
-          this.vy,
-          this.size / 2,
-          b
-        );
-        if (res && res.t < earliestT) {
+        if (b.markedForRemoval) continue;
+        const res = sweepAABB(this.x, this.y, stepVX, stepVY, this.size / 2, b);
+        if (res && res.t >= 0 && res.t < earliestT) {
           earliestT = res.t;
           hitBrick = b;
           hitNormal = res.normal;
+        } else if (!res) {
+          // fallback line test if numerical issues cause sweep to miss
+          if (
+            lineIntersectsRect(
+              this.x,
+              this.y,
+              this.x + stepVX,
+              this.y + stepVY,
+              b
+            )
+          ) {
+            // treat as a very-small-time contact (not exactly zero) to avoid zero-time loops
+            earliestT = Math.min(earliestT, 1e-3);
+            hitBrick = b;
+            const cx = this.x + stepVX - (b.x + b.width / 2);
+            const cy = this.y + stepVY - (b.y + b.height / 2);
+            if (Math.abs(cx) > Math.abs(cy))
+              hitNormal = { x: cx < 0 ? -1 : 1, y: 0 };
+            else hitNormal = { x: 0, y: cy < 0 ? -1 : 1 };
+          }
         }
       }
 
+      // === left/right walls (guard against near-zero stepVX) ===
       const leftWall = bounds.left + this.size / 2;
       const rightWall = bounds.right - this.size / 2;
-      if (this.vx < 0) {
-        const t = (leftWall - this.x) / this.vx;
-        if (t >= 0 && t < earliestT) {
-          earliestT = t;
-          hitNormal = { x: 1, y: 0 };
-          hitBrick = null;
-        }
-      } else if (this.vx > 0) {
-        const t = (rightWall - this.x) / this.vx;
-        if (t >= 0 && t < earliestT) {
-          earliestT = t;
-          hitNormal = { x: -1, y: 0 };
-          hitBrick = null;
+
+      if (Math.abs(stepVX) > 1e-8) {
+        if (this.vx < 0) {
+          const t = (leftWall - this.x) / stepVX;
+          if (t >= 0 && t < earliestT) {
+            earliestT = t;
+            hitBrick = null;
+            hitNormal = { x: 1, y: 0 };
+          }
+        } else if (this.vx > 0) {
+          const t = (rightWall - this.x) / stepVX;
+          if (t >= 0 && t < earliestT) {
+            earliestT = t;
+            hitBrick = null;
+            hitNormal = { x: -1, y: 0 };
+          }
         }
       }
 
-      if (this.vy < 0) {
-        const t = (this.size / 2 - this.y) / this.vy;
+      // === top wall (guard against near-zero stepVY) ===
+      if (Math.abs(stepVY) > 1e-8 && this.vy < 0) {
+        const t = (this.size / 2 - this.y) / stepVY;
         if (t >= 0 && t < earliestT) {
           earliestT = t;
+          hitBrick = null;
           hitNormal = { x: 0, y: 1 };
-          hitBrick = null;
         }
       }
 
-      if (this.vy > 0 && !this.returning) {
-        const t = (canvas.height - this.size / 2 - this.y) / this.vy;
+      // === bottom => set returning (guard against near-zero stepVY) ===
+      if (Math.abs(stepVY) > 1e-8 && this.vy > 0) {
+        const t = (canvas.height - this.size / 2 - this.y) / stepVY;
         if (t >= 0 && t < earliestT) {
+          // mark returning and nudge vy upward a little; continue so the return branch runs next frame
           this.returning = true;
           this.vy = -Math.abs(this.vy) * 0.8;
           return;
         }
       }
 
-      this.x += this.vx * earliestT;
-      this.y += this.vy * earliestT;
-      remainingTime -= earliestT;
+      // === move to collision point (or full step if no collision) ===
+      // earliestT is fraction of the step [0..1]
+      const moveT = earliestT;
+      this.x += stepVX * moveT;
+      this.y += stepVY * moveT;
 
+      // consume at least a tiny amount of remainingTime to ensure progress
+      const consumed = Math.max(moveT, MIN_CONSUME);
+      remainingTime *= 1 - consumed;
+
+      // === handle collision ===
       if (earliestT < 1.0 && hitNormal) {
-        if (hitBrick) hitBrick.health -= this.stats.damage;
+        // Only apply damage once per hit window
+        if (this.hitCooldown === 0 && hitBrick) {
+          hitBrick.health -= this.stats.damage;
+
+          // If the brick dies from this hit, mark it for removal immediately
+          if (hitBrick.health <= 0) {
+            hitBrick.markedForRemoval = true;
+          }
+
+          // prevent multi-hit on the same frame / tiny window
+          this.hitCooldown = 2; // frames
+        }
+
+        // reflect velocity across the (unit) normal: v' = v - 2*(v·n)*n
         const dot = this.vx * hitNormal.x + this.vy * hitNormal.y;
-        this.vx -= 2 * dot * hitNormal.x;
-        this.vy -= 2 * dot * hitNormal.y;
-        this.vx += (Math.random() - 0.5) * 1.2;
-        this.vy += (Math.random() - 0.5) * 1.2;
+        this.vx = this.vx - 2 * dot * hitNormal.x;
+        this.vy = this.vy - 2 * dot * hitNormal.y;
+
+        // add slight randomness to avoid perfect repetitive bounces
+        this.vx += (Math.random() - 0.5) * 1.0;
+        this.vy += (Math.random() - 0.5) * 1.0;
+
+        // normalize back to target speed to avoid slowdowns/explosions
         const spd = Math.hypot(this.vx, this.vy) || 1;
         this.vx = (this.vx / spd) * targetSpeed;
         this.vy = (this.vy / spd) * targetSpeed;
-        this.x += hitNormal.x * 0.2;
-        this.y += hitNormal.y * 0.2;
-      } else remainingTime = 0;
-    }
 
-    if (this.returning) {
+        // stronger separation to ensure ball is outside the rectangle
+        this.x += hitNormal.x * separation;
+        this.y += hitNormal.y * separation;
+
+        // update angle for drawing / future shots
+        this.angle = Math.atan2(this.vy, this.vx);
+
+        // continue the loop to resolve remainingTime
+      } else {
+        // no collision happened; if we moved the full step, stop processing
+        if (earliestT >= 1.0) remainingTime = 0;
+      }
+
+      // safety: if remainingTime becomes extremely small, break
+      if (remainingTime <= 1e-6) break;
+    } // end while
+
+    // === returning to player ===
+    if (this.returning && !this.markedForRemoval) {
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const dist = Math.hypot(dx, dy);
-      if (dist < 10) this.markedForRemoval = true;
-      else {
+
+      if (dist < 10) {
+        this.markedForRemoval = true;
+      } else {
         const speed = 13;
         this.x += (dx / dist) * speed;
         this.y += (dy / dist) * speed;
       }
     }
+
+    // final out-of-bounds cleanup
+    if (
+      this.x < -this.size ||
+      this.x > canvas.width + this.size ||
+      this.y < -this.size ||
+      this.y > canvas.height + this.size
+    ) {
+      this.markedForRemoval = true;
+    }
   }
 
   draw(ctx) {
-    // try to parse two color stops from the gradient string (expects hsl(...) pairs)
     const matches = (this.gradientCSS || "").match(/hsl\([^)]+\)/g) || [];
-
     const c1 = matches[0] || "hsl(220,20%,85%)";
     const c2 = matches[1] || matches[0] || "hsl(220,15%,65%)";
 
@@ -633,6 +944,25 @@ class Ball {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
     ctx.fill();
+
+    // ====================================================
+    // DRAW PHONICS TEXT (THIS MUST BE HERE)
+    // ====================================================
+    if (this.phonics) {
+      // choose readable text color
+      const textColor = getTextColorForBall(c1);
+
+      ctx.font = "bold 12px Fredoka, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.strokeStyle = textColor === "white" ? "black" : "white";
+      ctx.lineWidth = 3;
+      ctx.strokeText(this.phonics.toUpperCase(), this.x, this.y + 1);
+
+      ctx.fillStyle = textColor;
+      ctx.fillText(this.phonics.toUpperCase(), this.x, this.y + 1);
+    }
   }
 }
 
@@ -654,11 +984,24 @@ const keys = {};
 document.addEventListener("keydown", (e) => (keys[e.key.toLowerCase()] = true));
 document.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
+document.addEventListener("keydown", (e) => {
+  // ESC toggle pause (only if level-up modal not active)
+  if (e.key === "Escape" && !levelUpModal.visible) {
+    hardPaused = !hardPaused;
+    escMenu.visible = hardPaused;
+    if (hardPaused) {
+      escMenu.alpha = 0;
+    }
+  }
+});
+
 let mouseClientX = window.innerWidth / 2,
   mouseClientY = window.innerHeight / 2,
   mouseCanvasX = player.x,
   mouseCanvasY = player.y,
   mouseInsideCanvas = false;
+
+updateMouseInsideState();
 
 const dot = document.createElement("div");
 Object.assign(dot.style, {
@@ -712,26 +1055,23 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("mousemove", (e) => {
-  // Always update dot position so it follows the mouse
   mouseClientX = e.clientX;
   mouseClientY = e.clientY;
+
   dot.style.left = `${mouseClientX}px`;
   dot.style.top = `${mouseClientY}px`;
 
-  // Only update in-canvas tracking and player aiming if not paused
-  const rect = canvas.getBoundingClientRect();
-  if (mouseInsideCanvas) {
-    mouseCanvasX = e.clientX - rect.left;
-    mouseCanvasY = e.clientY - rect.top;
+  updateMouseInsideState(); // <-- keeps state correct
 
-    if (!gamePaused) {
-      player.angle = Math.atan2(
-        mouseCanvasY - player.y,
-        mouseCanvasX - player.x
-      );
-    }
+  if (mouseInsideCanvas && !gamePaused) {
+    const rect = canvas.getBoundingClientRect();
+    player.angle = Math.atan2(
+      mouseClientY - (rect.top + player.y),
+      mouseClientX - (rect.left + player.x)
+    );
   }
 });
+
 canvas.addEventListener("mouseleave", () => (mouseInsideCanvas = false));
 document.documentElement.style.cursor = "none";
 
@@ -759,6 +1099,35 @@ canvas.addEventListener("contextmenu", (e) => {
       selectedBall = inventory[i];
       break;
     }
+  }
+});
+
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // level-up modal clicks already handled
+  if (levelUpModal.visible) return;
+
+  const btn = drawAssignBallButton.bounds;
+  if (btn && mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.h) {
+    onAssignBallClick();
+  }
+});
+
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  if (levelUpModal.visible) return;
+
+  // --- phonics dropdown ---
+  const d = drawPhonicsDropdown.bounds;
+  if (d && mx >= d.x && mx <= d.x + d.w && my >= d.y && my <= d.y + d.h) {
+    openPhonicsMenu();
+    return;
   }
 });
 
@@ -857,6 +1226,45 @@ function drawSpawnLimits() {
   return { left: startX, right: endX + brickSystem.width };
 }
 
+function drawEscMenu() {
+  if (!escMenu.visible) return;
+
+  // fade-in effect
+  escMenu.alpha = Math.min(1, escMenu.alpha + 0.08);
+
+  ctx.save();
+  ctx.globalAlpha = escMenu.alpha;
+
+  // dark overlay
+  ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // box
+  const w = 420;
+  const h = 250;
+  const x = (canvas.width - w) / 2;
+  const y = (canvas.height - h) / 2;
+
+  ctx.fillStyle = "rgba(40,40,60,0.95)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, 20);
+  ctx.fill();
+  ctx.strokeStyle = "hsl(280, 80%, 70%)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "hsl(280, 85%, 75%)";
+  ctx.font = "bold 48px Fredoka, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("PAUSED", canvas.width / 2, y + 90);
+
+  ctx.fillStyle = "white";
+  ctx.font = "20px Fredoka, sans-serif";
+  ctx.fillText("Press ESC to continue", canvas.width / 2, y + 150);
+
+  ctx.restore();
+}
+
 // =================== MAIN LOOP ===================
 let lastTime = 0;
 function update(timestamp) {
@@ -884,6 +1292,16 @@ function update(timestamp) {
     requestAnimationFrame(update);
     return;
   }
+  // draw ESC pause menu if active
+  if (hardPaused) {
+    drawInventory(bounds);
+    drawHealthBar(bounds);
+    drawXpBar(bounds);
+    drawPlayer();
+    drawEscMenu();
+    requestAnimationFrame(update);
+    return; // stop gameplay updates
+  }
   // draw red danger line only between spawn boundaries
   ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
   ctx.lineWidth = 2;
@@ -894,6 +1312,8 @@ function update(timestamp) {
   drawInventory(bounds);
   drawHealthBar(bounds);
   drawXpBar(bounds);
+  drawAssignBallButton(bounds);
+  drawPhonicsDropdown(bounds);
   brickSystem.update();
   updatePlayer(bounds);
   drawPlayer();
@@ -905,20 +1325,41 @@ function update(timestamp) {
   }
   drawLevelUpModal();
   // === Auto Shooting ===
-  autoShootTimer += deltaTime; // you'll need deltaTime — see below
-  if (autoShootTimer >= autoShootInterval && balls.length === 0) {
+  // === Auto Shooting: timer + one ball per type at a time ===
+  autoShootTimer += deltaTime;
+
+  if (autoShootTimer >= autoShootInterval) {
     autoShootTimer = 0;
-    const ballData = inventory[currentBallIndex % inventory.length];
-    balls.push(
-      new Ball(
-        player.x,
-        player.y,
-        player.angle,
-        ballData.stats,
-        ballData.gradient
-      )
-    );
-    currentBallIndex++;
+
+    let attempts = 0;
+    let shot = false;
+
+    // Try each ball type once
+    while (attempts < inventory.length && !shot) {
+      const ballData = inventory[currentBallIndex % inventory.length];
+
+      const alreadyActive = balls.some(
+        (b) => b.stats === ballData.stats && b.gradientCSS === ballData.gradient
+      );
+
+      // Only shoot if no ball of this type is active
+      if (!alreadyActive) {
+        balls.push(
+          new Ball(
+            player.x,
+            player.y,
+            player.angle,
+            ballData.stats,
+            ballData.gradient,
+            ballData.phonics // <<< permanently assigned when shot
+          )
+        );
+        shot = true;
+      }
+
+      currentBallIndex++;
+      attempts++;
+    }
   }
   requestAnimationFrame(update);
 }
